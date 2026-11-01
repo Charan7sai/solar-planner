@@ -1,0 +1,73 @@
+{
+  "checkpoint": "best",
+  "epoch": 3,
+  "candidates_val_iou": {
+    "best": {
+      "epoch": 3,
+      "best_val_iou": 0.5012
+    },
+    "last": {
+      "epoch": 15,
+      "best_val_iou": 0.472
+    }
+  },
+  "threshold": 0.2,
+  "val_iou_at_0.5": 0.4322,
+  "val_iou_at_threshold": 0.5012,
+  "test_at_0.5": {
+    "iou": 0.3025,
+    "f1": 0.4645,
+    "precision": 0.6199,
+    "recall": 0.3714
+  },
+  "test_at_threshold": {
+    "iou": 0.3206,
+    "f1": 0.4856,
+    "precision": 0.5047,
+    "recall": 0.4679
+  },
+  "test_by_country": {
+    "Eswatini": {
+      "tiles": 2376,
+      "iou": 0.3299,
+      "f1": 0.4961,
+      "precision": 0.3642,
+      "recall": 0.7777
+    },
+    "Peru": {
+      "tiles": 1396,
+      "iou": 0.1249,
+      "f1": 0.2221,
+      "precision": 0.4271,
+      "recall": 0.15
+    },
+    "Japan": {
+      "tiles": 1307,
+      "iou": 0.4514,
+      "f1": 0.622,
+      "precision": 0.4943,
+      "recall": 0.8386
+    },
+    "Mozambique": {
+      "tiles": 1296,
+      "iou": 0.6513,
+      "f1": 0.7888,
+      "precision": 0.7107,
+      "recall": 0.8862
+    },
+    "Tajikistan": {
+      "tiles": 791,
+      "iou": 0.4499,
+      "f1": 0.6206,
+      "precision": 0.4642,
+      "recall": 0.9362
+    },
+    "Philippines": {
+      "tiles": 70,
+      "iou": 0.5218,
+      "f1": 0.6858,
+      "precision": 0.5631,
+      "recall": 0.8768
+    }
+  }
+}

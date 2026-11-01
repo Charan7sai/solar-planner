@@ -71,9 +71,68 @@ Test IoU by country (tuned threshold):
 - **Some labels are noisy.** Some test tiles are blurry or the OSM outlines are offset from the
   imagery, which caps the achievable IoU (see the first rows of the prediction grid).
 
-These results motivate CP3: an **ImageNet-pretrained encoder** should transfer far better to
-unseen locations than features learned from 21k tiles, and training on all 11 shards adds
-diversity.
+These results motivated CP3: try an ImageNet-pretrained encoder.
+
+## CP3: pretrained encoder + CPU-ready export
+
+### Pretrained ResNet-34 encoder
+
+Same data, augmentation, loss, epochs and evaluation protocol as the baseline, so the only change
+is the model. The decoder upsamples ResNet-34 features (ImageNet weights from torchvision) back to
+full resolution with U-Net skip connections: 24.4 M parameters, and *faster* per step than the
+baseline (0.15 s vs 0.21 s) because less work happens at full resolution.
+
+**Selection protocol:** for every run, `evaluate.py` compares the best-by-IoU@0.5 and last-epoch
+checkpoints and sweeps the threshold, **all on validation**. Only the winner is scored on test.
+The final model is the run with the highest validation IoU.
+
+| Run | LR | Selected | Threshold | Val IoU | Test IoU | Test F1 |
+|---|---|---|---|---|---|---|
+| U-Net from scratch (CP2) | 1e-3 | epoch 9 | 0.10 | 0.454 | 0.308 | 0.471 |
+| **ResNet-34 U-Net** ✅ | 5e-4 | epoch 3 | 0.20 | **0.501** | **0.321** | **0.486** |
+| ResNet-34 U-Net | 2e-4 | epoch 15 | 0.05 | 0.494 | 0.339 | 0.506 |
+
+The 2e-4 run scored better **on test**, but it lost on validation, so it was not chosen. Picking
+a model by its test score would make the test number meaningless. Both pretrained runs beat the
+baseline on validation and test, and the gap between them is within run-to-run noise.
+
+Test IoU by country:
+
+| Country | Baseline | ResNet-34 (selected) |
+|---|---|---|
+| Mozambique | 0.600 | **0.651** |
+| Philippines | 0.606 | 0.522 |
+| Japan | 0.464 | 0.451 |
+| Tajikistan | 0.421 | **0.450** |
+| Eswatini | 0.265 | **0.330** |
+| Peru | 0.123 | 0.125 |
+
+![Training curves](runs/resnet34_unet/curves.png)
+
+**What we learned:**
+- The pretrained encoder reaches the baseline's best validation IoU **within one epoch** and gains
+  most on Eswatini (+25% relative) and Mozambique.
+- **Peru remains unsolved** (~0.12 for every model). Its rooftops look unlike anything in the
+  training data, so this needs more diverse data (e.g. adding similar regions), not a bigger model.
+- Validation IoU at a fixed 0.5 threshold swings a lot between epochs for every run, while
+  validation loss falls steadily. The models' calibration drifts against the unseen validation
+  locations, which is why tuning the threshold on validation matters.
+
+### ONNX export + INT8 quantization
+
+Free hosting (Hugging Face Spaces) is CPU-only with 2 vCPUs, so `export_onnx.py` exports the
+selected model to ONNX (dynamic height/width), checks it against PyTorch, applies **static INT8
+quantization** (per-channel weights, calibrated on 256 validation tiles), and benchmarks it on
+1,000 *other* validation tiles.
+
+| | Size | Val IoU | CPU, 2 threads, 256 px | CPU, 2 threads, 512 px |
+|---|---|---|---|---|
+| PyTorch FP32 | 97.7 MB | 0.502 | – | – |
+| ONNX FP32 | 97.7 MB | 0.502 | 83 ms | 340 ms |
+| **ONNX INT8** | **24.7 MB** | **0.504** | **76 ms** | **289 ms** |
+
+ONNX output matches PyTorch to within 3e-5. Quantization makes the model **4× smaller with no loss
+in accuracy**, and a 512 px area (about one city block at zoom 19) is segmented in under 0.3 s.
 
 ## Reproduce
 
@@ -84,4 +143,8 @@ python ml/prepare_data.py                          # ~3.7 GB download
 cd ml
 python train.py --run unet_baseline --epochs 15    # add --resume to continue an interrupted run
 python evaluate.py --run unet_baseline
+
+python train.py --arch resnet34_unet --lr 5e-4 --run resnet34_unet --epochs 15
+python evaluate.py --run resnet34_unet
+python export_onnx.py --run resnet34_unet          # needs: pip install onnx onnxruntime onnxscript
 ```

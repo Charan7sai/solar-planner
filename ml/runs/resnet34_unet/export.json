@@ -1,0 +1,24 @@
+{
+  "threshold": 0.2,
+  "onnx_max_abs_diff_vs_torch": 3.0279159545898438e-05,
+  "val_iou": {
+    "pytorch_fp32": 0.5018,
+    "onnx_fp32": 0.5018,
+    "onnx_int8": 0.504
+  },
+  "eval_tiles": 1000,
+  "size_mb": {
+    "fp32": 97.7,
+    "int8": 24.7
+  },
+  "cpu_latency_ms": {
+    "fp32_1thread_256px": 151.6,
+    "fp32_1thread_512px": 605.5,
+    "fp32_2thread_256px": 83.1,
+    "fp32_2thread_512px": 339.9,
+    "int8_1thread_256px": 107.8,
+    "int8_1thread_512px": 428.4,
+    "int8_2thread_256px": 75.7,
+    "int8_2thread_512px": 288.7
+  }
+}
