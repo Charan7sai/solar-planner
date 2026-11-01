@@ -5,11 +5,11 @@ from pathlib import Path
 from typing import Literal
 
 import httpx
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
-from . import finance, roof, solar
+from . import finance, imagery, roof, solar
 
 
 def _load_dotenv(path: Path = Path(__file__).parent.parent / ".env") -> None:
@@ -86,6 +86,16 @@ def health():
 def config():
     # ArcGIS basemap keys are meant to be used in browsers; restrict yours to this site's referrer
     return {"arcgis_api_key": imagery_key()}
+
+
+@app.get("/api/imagery-date")
+async def imagery_date(lat: float = Query(ge=-85, le=85), lon: float = Query(ge=-180, le=180)):
+    """Capture date of the satellite image shown at a point (from Esri's imagery metadata)."""
+    try:
+        info = await imagery.capture_info(lat, lon)
+    except (httpx.HTTPError, ValueError, KeyError):
+        info = None
+    return {"found": info is not None, **(info or {})}
 
 
 @app.post("/api/detect-roof")
