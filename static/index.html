@@ -3,75 +3,263 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Rooftop Solar Planner</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
-  <link rel="stylesheet" href="style.css?v=6">
+  <title>Rooftop Solar Planner: solar cost and savings for your roof</title>
+  <meta name="description" content="Click your roof on a satellite map to measure it, then see how much power solar panels would generate, the cost after the PM Surya Ghar subsidy, and the payback period. Free, no sign-up.">
+  <meta name="theme-color" content="#c2410c">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Rooftop Solar Planner">
+  <meta property="og:description" content="Measure your roof from satellite imagery and estimate solar generation, cost after subsidy and payback using 20 years of NASA weather data.">
+  <meta property="og:image" content="/assets/img/detection-example.jpg">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
+  <link rel="stylesheet" href="/assets/css/site.css?v=14">
 </head>
 <body>
-  <header>
-    <h1>☀️ Rooftop Solar Planner</h1>
-    <p>Click your roof and an AI model outlines it from satellite imagery. Then see what solar would generate and save, using 20 years of NASA data for your exact location.</p>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="scroll-progress" aria-hidden="true"><span></span></div>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="logo" href="/" aria-label="Rooftop Solar Planner home">
+        <img src="/assets/img/logo.svg" alt="" width="30" height="30">
+        <span>Rooftop Solar Planner</span>
+      </a>
+      <nav id="site-nav" class="site-nav" aria-label="Main">
+        <ul>
+          <li><a href="#how-it-works">How it works</a></li>
+          <li><a href="#accuracy">Accuracy</a></li>
+          <li><a href="#faq">FAQ</a></li>
+          <li><a href="#contact">Contact</a></li>
+          <li><a class="btn btn-primary btn-small" href="/planner/">Open the planner</a></li>
+        </ul>
+      </nav>
+      <button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label="Switch theme">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <button class="icon-btn nav-toggle" type="button" data-nav-toggle aria-controls="site-nav" aria-expanded="false" aria-label="Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
   </header>
 
-  <main>
-    <section class="panel map-panel">
-      <form id="search" class="search">
-        <input id="q" type="search" placeholder="Search your address or area…" autocomplete="off">
-        <button type="submit">Find</button>
-        <button type="button" id="detect" class="secondary" title="Click a roof and the AI model outlines it">📍 Detect roof</button>
-      </form>
-      <div id="map"></div>
-      <p class="hint">Zoom into your building, press <b>Detect roof</b> and click the middle of your roof. The model outlines it for you. You can also trace it yourself with the <b>polygon tool</b> (top-left).</p>
+  <main id="main" tabindex="-1">
+    <section class="hero">
+      <div class="container hero-grid">
+        <div>
+          <h1>See what solar panels on your roof would cost and save</h1>
+          <p class="hero-lead">Click your roof on a satellite map. A segmentation model outlines it and measures the area. The planner then uses 20 years of NASA weather data for that exact spot to estimate how much power panels would generate, what they cost after the PM Surya Ghar subsidy, and how many years they take to pay for themselves.</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="/planner/">Open the planner</a>
+            <a class="btn btn-secondary" href="#how-it-works">How it works</a>
+          </div>
+          <p class="muted small">Free, with no sign-up. Works best in Indian cities with clear satellite imagery.</p>
+        </div>
+        <figure class="hero-figure">
+          <img src="/assets/img/detection-example.jpg" width="768" height="640" alt="Satellite view of a neighbourhood in Banjara Hills, Hyderabad, with one roof outlined in orange by the model">
+          <figcaption>One click on a roof in Banjara Hills, Hyderabad. The model outlined it and measured 260 m². Imagery © Esri, Maxar, Earthstar Geographics.</figcaption>
+        </figure>
+      </div>
     </section>
 
-    <section class="panel">
-      <form id="inputs" class="inputs">
-        <label>Roof area (m²)
-          <input id="area" type="number" min="1" step="0.1" required placeholder="Draw on map or type">
-        </label>
-        <label>Monthly electricity use (units / kWh)
-          <input id="units" type="number" min="1" value="300" required>
-        </label>
-        <label>Your tariff (₹/unit)
-          <input id="tariff" type="number" min="0.1" step="0.1" value="7">
-        </label>
-        <label>Export credit (₹/unit)
-          <input id="export" type="number" min="0" step="0.1" value="3">
-        </label>
-        <label>Install cost (₹/kW)
-          <input id="cost" type="number" min="1000" step="1000" value="60000">
-        </label>
-        <label>System size override (kW)
-          <input id="kwp" type="number" min="0.5" step="0.5" placeholder="Auto">
-        </label>
-        <button type="submit" id="go">Estimate</button>
-      </form>
-      <p id="status" class="status" role="status"></p>
+    <section class="section section-alt" aria-label="Key numbers">
+      <div class="container">
+        <ul class="facts">
+          <li><strong>20 years</strong><span>of NASA POWER sunlight and temperature data for your coordinates</span></li>
+          <li><strong>About 1 second</strong><span>to outline a roof, with the model running on an ordinary CPU</span></li>
+          <li><strong>21%</strong><span>median roof-area error on 300 buildings the model had never seen</span></li>
+          <li><strong>₹78,000</strong><span>maximum central subsidy for homes, applied to your estimate automatically</span></li>
+        </ul>
+      </div>
     </section>
 
-    <section id="results" class="results" hidden>
-      <div class="cards" id="cards"></div>
-      <div class="panel chart-box">
-        <h2>Monthly generation vs. your use</h2>
-        <canvas id="genChart"></canvas>
+    <section class="section" id="how-it-works">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">How it works</p>
+          <h2>Three steps, about two minutes</h2>
+          <p>You need your pincode and a recent electricity bill. Everything else comes from satellite data.</p>
+        </div>
+        <ol class="steps">
+          <li>
+            <h3>Find your building</h3>
+            <p>Enter your pincode, add the street if you know it, or use your phone's location. Search takes you to the right area. You then move the map to your own roof, because address data in India rarely points to a single building.</p>
+          </li>
+          <li>
+            <h3>Outline the roof</h3>
+            <p>Press Detect roof and click the middle of your roof. The model draws the outline and measures it. If the outline is off, drag its corners, or trace the roof yourself.</p>
+          </li>
+          <li>
+            <h3>Enter your electricity use</h3>
+            <p>Add the monthly units from your bill and your tariff. You get a recommended system size, month-by-month generation, the cost after subsidy, the payback period and 25-year savings.</p>
+          </li>
+        </ol>
       </div>
-      <div class="panel chart-box">
-        <h2>Cumulative savings over 25 years</h2>
-        <canvas id="cashChart"></canvas>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">The estimate</p>
+          <h2>What the planner works out for you</h2>
+        </div>
+        <ul class="feature-list">
+          <li>System size in kW and the number of 550 W panels, limited by your roof space or by how much power you use.</li>
+          <li>Generation in a typical year and in a poor year, from 20 real years of weather at your location.</li>
+          <li>Cost before and after central financial assistance under <a href="https://pmsuryaghar.gov.in/" target="_blank" rel="noopener">PM Surya Ghar: Muft Bijli Yojana</a>.</li>
+          <li>Month-by-month net metering: units you use save your full tariff, and surplus units earn the export rate.</li>
+          <li>Payback period and 25-year savings, including panel ageing of 0.5% a year, tariff rises of 3% a year and upkeep of 1% of the cost a year.</li>
+          <li>Carbon dioxide avoided each year, using the India grid average of 0.71 kg per unit.</li>
+        </ul>
       </div>
-      <div class="panel chart-box">
-        <h2>Year-to-year variability (2004–2023 weather)</h2>
-        <canvas id="yearChart"></canvas>
+    </section>
+
+    <section class="section" id="accuracy">
+      <div class="container two-col">
+        <div>
+          <p class="eyebrow">Accuracy and limits</p>
+          <h2>How far you can trust the numbers</h2>
+          <p>The roof model was trained on 21,000 aerial images from 15 countries. It was then tested on 300 buildings in places it had never seen, by simulating a click in the middle of each roof and comparing the outline with the real one.</p>
+          <div class="table-wrap">
+            <table class="data-table">
+              <caption class="muted small" style="text-align:left; caption-side:bottom; padding-top:8px;">Results on held-out buildings. Full method on <a href="https://github.com/Charan7sai/solar-planner/blob/main/ml/README.md" target="_blank" rel="noopener">GitHub</a>.</caption>
+              <thead><tr><th scope="col">Measure</th><th scope="col">Result</th></tr></thead>
+              <tbody>
+                <tr><td>Typical roof-area error (median)</td><td>21%</td></tr>
+                <tr><td>Roofs outlined well (more than half overlap)</td><td>40%</td></tr>
+                <tr><td>Time to outline one roof</td><td>About 1 s</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Known limits</h3>
+          <ul class="limits">
+            <li>It works best where imagery is sharp, mostly in cities. In smaller towns the planner falls back to lower-resolution imagery and tells you so.</li>
+            <li>Dense blocks of similar grey flat roofs are hard. The model may miss the roof or join it to a neighbour's. Trace these by hand.</li>
+            <li>Shade from trees, water tanks and nearby buildings is not modelled yet.</li>
+            <li>This is an estimate, not a quote. Get a site survey from an installer before you buy.</li>
+          </ul>
+        </div>
       </div>
-      <p class="fine">Estimates only. Subsidy follows PM Surya Ghar central assistance for residential systems. Actual output depends on shading, tilt and installer quality. Get a site survey before you buy.</p>
+    </section>
+
+    <section class="section section-alt" id="faq">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">FAQ</p>
+          <h2>Common questions</h2>
+        </div>
+        <div class="faq">
+          <details>
+            <summary>Is it free?</summary>
+            <div><p>Yes. There is no sign-up and no payment. The planner runs on free hosting and free public data.</p></div>
+          </details>
+          <details>
+            <summary>How accurate is the roof area?</summary>
+            <div><p>On buildings it had never seen, the median error was 21%. Always check the outline on the map and drag its corners if needed. You can also type the area yourself.</p></div>
+          </details>
+          <details>
+            <summary>Where does the sunlight data come from?</summary>
+            <div><p>From <a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener">NASA POWER</a>, which provides satellite-based sunlight and temperature records for any point on Earth. The planner uses monthly values from 2004 to 2023 for your coordinates.</p></div>
+          </details>
+          <details>
+            <summary>How is the subsidy calculated?</summary>
+            <div><p>It follows central financial assistance for homes under <a href="https://pmsuryaghar.gov.in/" target="_blank" rel="noopener">PM Surya Ghar: Muft Bijli Yojana</a>: ₹30,000 per kW for the first 2 kW and ₹18,000 for the third kW, up to ₹78,000. State top-ups are not included. Check the official portal for the current rules before applying.</p></div>
+          </details>
+          <details>
+            <summary>Does it store my location or address?</summary>
+            <div><p>No. Address search goes from your browser to the OpenStreetMap Nominatim service. For roof detection and estimates, your coordinates are sent to this site's server, used for that request and not saved. Anonymous usage counts, such as how many estimates were run, are logged without any location.</p></div>
+          </details>
+          <details>
+            <summary>Why did roof detection fail?</summary>
+            <div><p>Usually for one of three reasons: the map is not zoomed in enough (zoom to level 17 or closer), there is no sharp imagery for your area, or the roof is hard to see because it is very dark, very small or under trees. The planner tells you which one it was and what to do next. You can always trace the roof by hand.</p></div>
+          </details>
+          <details>
+            <summary>Can I use it outside India?</summary>
+            <div><p>The generation estimate works anywhere. The subsidy, rupee prices and pincode search are for India.</p></div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="contact">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">Contact</p>
+          <h2>Questions, bugs or ideas</h2>
+          <p>Built by Charan Sai Neelisetty. Email is the fastest way to reach me.</p>
+        </div>
+        <ul class="contact-list">
+          <li>
+            <a href="mailto:neelisettycharansai@gmail.com">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+              <span>Email<small>neelisettycharansai@gmail.com</small></span>
+            </a>
+          </li>
+          <li>
+            <a href="https://www.linkedin.com/in/charan-sai-neelisetty-616021328/" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM9 9h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V21h-4v-5.5c0-1.31-.02-3-1.83-3-1.83 0-2.11 1.43-2.11 2.9V21H9z"/></svg>
+              <span>LinkedIn<small>Charan Sai Neelisetty</small></span>
+            </a>
+          </li>
+          <li>
+            <a href="https://github.com/Charan7sai" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.6 9.6 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></svg>
+              <span>GitHub<small>Charan7sai</small></span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section section-alt cta-band">
+      <div class="container">
+        <h2>Ready to check your roof?</h2>
+        <p>Keep your pincode and last electricity bill handy.</p>
+        <a class="btn btn-primary" href="/planner/">Open the planner</a>
+      </div>
     </section>
   </main>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/leaflet.tilelayer.fallback@1.0.4/dist/leaflet.tilelayer.fallback.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-  <script src="app.js?v=6"></script>
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <a class="logo" href="/" aria-label="Rooftop Solar Planner home">
+            <img src="/assets/img/logo.svg" alt="" width="30" height="30">
+            <span>Rooftop Solar Planner</span>
+          </a>
+          <p style="margin-top:10px;">Solar estimates from satellite imagery and NASA weather data. Source code on <a href="https://github.com/Charan7sai/solar-planner" target="_blank" rel="noopener">GitHub</a>.</p>
+        </div>
+        <div>
+          <h2>Pages</h2>
+          <ul>
+            <li><a href="/planner/">Planner</a></li>
+            <li><a href="#how-it-works">How it works</a></li>
+            <li><a href="#faq">FAQ</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2>Data sources</h2>
+          <ul>
+            <li><a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener">NASA POWER</a> for sunlight and temperature</li>
+            <li>Esri, Maxar and Earthstar Geographics for imagery</li>
+            <li><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a> for map data and search</li>
+          </ul>
+        </div>
+      </div>
+      <p class="footer-bottom">© <span data-year>2026</span> Charan Sai Neelisetty</p>
+    </div>
+  </footer>
+
+  <button class="icon-btn back-to-top" type="button" data-back-to-top aria-label="Back to top" title="Back to top">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+  </button>
+
+  <script src="/assets/js/site.js?v=14"></script>
 </body>
 </html>
