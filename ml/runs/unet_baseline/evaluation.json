@@ -1,4 +1,16 @@
 {
+  "checkpoint": "best",
+  "epoch": 9,
+  "candidates_val_iou": {
+    "best": {
+      "epoch": 9,
+      "best_val_iou": 0.454
+    },
+    "last": {
+      "epoch": 15,
+      "best_val_iou": 0.4193
+    }
+  },
   "threshold": 0.1,
   "val_iou_at_0.5": 0.3635,
   "val_iou_at_threshold": 0.454,

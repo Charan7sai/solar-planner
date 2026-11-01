@@ -17,10 +17,10 @@ import torch
 from torch.utils.data import DataLoader
 
 from dataset import DATA_DIR, RoofDataset
-from model import UNet
+from model import build_model
 
 RUNS_DIR = Path(__file__).parent / "runs"
-THRESHOLDS = np.round(np.arange(0.1, 0.75, 0.05), 2)
+THRESHOLDS = np.round(np.arange(0.05, 0.75, 0.05), 2)
 
 
 def countries(split: str) -> list[str]:
@@ -85,25 +85,46 @@ def plot_history(run_dir: Path) -> None:
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--run", default="unet_baseline")
+    p.add_argument("--checkpoints", default="best,last",
+                   help="Candidates compared on validation; the winner alone is scored on test")
     args = p.parse_args()
 
-    plot_history(RUNS_DIR / args.run)
+    run_dir = RUNS_DIR / args.run
+    plot_history(run_dir)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    ckpt =torch.load(RUNS_DIR / args.run / "checkpoints" / "best.pt", map_location=device)
-    model = UNet(base=ckpt["base"]).to(device).eval()
-    model.load_state_dict(ckpt["model"])
-
-    val = confusion_by_group(model, RoofDataset("validation"), countries("validation"), device, THRESHOLDS)
-    val_iou = [scores(r)["iou"] for r in val["all"]]
-    best = int(np.argmax(val_iou))
+    val_ds, val_groups = RoofDataset("validation"), countries("validation")
     default = int(np.where(THRESHOLDS == 0.5)[0][0])
-    print("validation IoU by threshold:", dict(zip(THRESHOLDS.tolist(), val_iou)))
+
+    # Model selection (checkpoint + threshold) uses validation only
+    # Older last.pt files didn't record the architecture; best.pt always does
+    reference = torch.load(run_dir / "checkpoints" / "best.pt", map_location="cpu", weights_only=False)
+    candidates = {}
+    for name in args.checkpoints.split(","):
+        path = run_dir / "checkpoints" / f"{name}.pt"
+        if not path.exists():
+            continue
+        ckpt = torch.load(path, map_location=device, weights_only=False)
+        arch, base = ckpt.get("arch", reference.get("arch", "unet")), ckpt.get("base", reference["base"])
+        model = build_model(arch, base, pretrained=False).to(device).eval()
+        model.load_state_dict(ckpt["model"])
+        val = confusion_by_group(model, val_ds, val_groups, device, THRESHOLDS)
+        val_iou = [scores(r)["iou"] for r in val["all"]]
+        candidates[name] = {"model": model, "epoch": ckpt["epoch"], "val_iou": val_iou}
+        print(f"{name} (epoch {ckpt['epoch']}) validation IoU by threshold:",
+              dict(zip(THRESHOLDS.tolist(), val_iou)))
+
+    chosen = max(candidates, key=lambda n: max(candidates[n]["val_iou"]))
+    model, val_iou = candidates[chosen]["model"], candidates[chosen]["val_iou"]
+    best = int(np.argmax(val_iou))
 
     test_groups = countries("test")
     test = confusion_by_group(model, RoofDataset("test"), test_groups, device, THRESHOLDS[[default, best]])
     tiles = {c: test_groups.count(c) for c in set(test_groups)}
 
     report = {
+        "checkpoint": chosen,
+        "epoch": candidates[chosen]["epoch"],
+        "candidates_val_iou": {n: {"epoch": c["epoch"], "best_val_iou": max(c["val_iou"])} for n, c in candidates.items()},
         "threshold": float(THRESHOLDS[best]),
         "val_iou_at_0.5": val_iou[default],
         "val_iou_at_threshold": val_iou[best],
@@ -114,7 +135,7 @@ def main():
             for c in sorted(tiles, key=lambda c: -tiles[c])
         },
     }
-    (RUNS_DIR / args.run / "evaluation.json").write_text(json.dumps(report, indent=2))
+    (run_dir / "evaluation.json").write_text(json.dumps(report, indent=2))
     print(json.dumps(report, indent=2))
 
 
