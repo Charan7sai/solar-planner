@@ -20,13 +20,15 @@ Each checkpoint ends in a working, tested app and is pushed to GitHub as its own
 - ONNX + static INT8 quantization: **4x smaller (24.7 MB), no accuracy loss, 289 ms per 512 px area on 2 CPU threads**
 - Remaining gap: Peru-style rooftops (~0.12 IoU) need more diverse training data
 
-## ⬜ CP4: Drop-a-pin auto roof detection
-- `/api/detect-roof`: fetch tiles around the pin, segment, return the roof polygon + area
-- Frontend: click a building, see the detected outline, edit it if needed
+## ✅ CP4: Drop-a-pin auto roof detection
+- `/api/detect-roof`: zoom-19 ArcGIS imagery around the pin → INT8 ONNX model → watershed split → GeoJSON roof + area
+- Frontend: Detect roof mode; outline is editable and feeds the estimate; OpenStreetMap fallback without a key
+- Instance-level eval on 300 held-out buildings (method chosen on validation): **0.378 mean IoU, 21% median area error**
+- Checked on Esri imagery of six Indian neighbourhoods: good in mixed areas, weak in dense flat-concrete blocks
 
 ## ⬜ CP5: Deploy + CI
 - GitHub Actions: run tests on every push
-- Deploy to Hugging Face Spaces, add live link + demo GIF to README
+- Deploy to Hugging Face Spaces with the ArcGIS key as a secret, add live link + demo GIF to README
 
 ## ⬜ CP6: Accuracy + product polish
 - Shading/obstruction loss estimate
