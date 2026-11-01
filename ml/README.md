@@ -134,6 +134,33 @@ quantization** (per-channel weights, calibrated on 256 validation tiles), and be
 ONNX output matches PyTorch to within 3e-5. Quantization makes the model **4× smaller with no loss
 in accuracy**, and a 512 px area (about one city block at zoom 19) is segmented in under 0.3 s.
 
+## CP4: from masks to one roof per click
+
+Pixel IoU rewards good masks, but users get **one outline for the roof they clicked**. With the
+pixel-optimal threshold (0.2), neighbouring roofs and paved areas merge into one blob, so
+`evaluate_detection.py` measures what users actually see: it simulates a click at the centre of
+300 held-out buildings and compares the returned polygon with that building's label.
+
+Post-processing candidates were compared on **validation** buildings:
+
+| Method | Val mean IoU | Val median area error |
+|---|---|---|
+| Components @ 0.2 | 0.312 | 99% |
+| Components @ 0.5 | 0.372 | 39% |
+| Components @ 0.65 | 0.375 | 34% |
+| Watershed 0.2 / 0.5 | 0.383 | 44% |
+| **Watershed 0.35 / 0.65** | **0.403** | **33%** |
+
+The watershed seeds a region from every high-confidence (>0.65) roof core and lets the seeds grow
+through the >0.35 mask, so touching roofs split where confidence dips between them. On **test**:
+
+| | Found | Mean IoU | IoU > 0.5 | Median area error |
+|---|---|---|---|---|
+| Components @ 0.2 | 67% | 0.326 | 32% | 39% |
+| **Watershed 0.35 / 0.65** | 65% | **0.378** | **40%** | **21%** |
+
+Results are in [`runs/detection_eval.json`](runs/detection_eval.json).
+
 ## Reproduce
 
 ```bash
@@ -147,4 +174,6 @@ python evaluate.py --run unet_baseline
 python train.py --arch resnet34_unet --lr 5e-4 --run resnet34_unet --epochs 15
 python evaluate.py --run resnet34_unet
 python export_onnx.py --run resnet34_unet          # needs: pip install onnx onnxruntime onnxscript
+cd ..
+python ml/evaluate_detection.py --buildings 300     # per-building evaluation of the deployed pipeline
 ```
