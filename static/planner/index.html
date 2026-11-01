@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Planner | Rooftop Solar Planner</title>
+  <meta name="description" content="Find your building by pincode or current location, outline your roof from satellite imagery, and get a solar estimate with cost after subsidy, payback period and 25-year savings.">
+  <meta name="theme-color" content="#c2410c">
+  <meta property="og:title" content="Solar planner | Rooftop Solar Planner">
+  <meta property="og:description" content="Outline your roof from satellite imagery and get a solar estimate for your exact location.">
+  <meta property="og:image" content="/assets/img/detection-example.jpg">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
+  <link rel="stylesheet" href="/assets/css/site.css?v=14">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="scroll-progress" aria-hidden="true"><span></span></div>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="logo" href="/" aria-label="Rooftop Solar Planner home">
+        <img src="/assets/img/logo.svg" alt="" width="30" height="30">
+        <span>Rooftop Solar Planner</span>
+      </a>
+      <nav id="site-nav" class="site-nav" aria-label="Main">
+        <ul>
+          <li><a href="/#how-it-works">How it works</a></li>
+          <li><a href="/#faq">FAQ</a></li>
+          <li><a href="/#contact">Contact</a></li>
+        </ul>
+      </nav>
+      <button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label="Switch theme">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <button class="icon-btn nav-toggle" type="button" data-nav-toggle aria-controls="site-nav" aria-expanded="false" aria-label="Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <div class="container">
+      <div class="page-intro">
+        <h1>Solar planner</h1>
+        <p>Find your building, outline the roof, then enter your electricity use. Your estimate appears below the map.</p>
+      </div>
+
+      <div class="planner-grid">
+        <section class="card area-find" aria-labelledby="find-title">
+          <h2 class="step-title" id="find-title"><span class="step-num">1</span>Find your building</h2>
+          <form id="search-form" novalidate>
+            <div class="field">
+              <label for="pincode">Pincode</label>
+              <input id="pincode" name="pincode" inputmode="numeric" autocomplete="postal-code" maxlength="6" placeholder="For example 500034" aria-describedby="pincode-error" required>
+              <p class="field-error" id="pincode-error" hidden></p>
+            </div>
+            <details class="more-fields" id="more-fields">
+              <summary>Add street details for a closer match</summary>
+              <div class="field-row">
+                <div class="field">
+                  <label for="house">House or building</label>
+                  <input id="house" name="house" autocomplete="address-line1" placeholder="For example 8-2-293">
+                </div>
+                <div class="field">
+                  <label for="street">Street or road</label>
+                  <input id="street" name="street" autocomplete="address-line2" placeholder="For example Road No. 12">
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label for="locality">Area or locality</label>
+                  <input id="locality" name="locality" placeholder="For example Banjara Hills">
+                </div>
+                <div class="field">
+                  <label for="city">City or town</label>
+                  <input id="city" name="city" autocomplete="address-level2" placeholder="For example Hyderabad">
+                </div>
+              </div>
+            </details>
+            <button type="submit" class="btn btn-primary" id="search-btn" style="width:100%;">Search</button>
+          </form>
+          <div class="or-divider">or</div>
+          <button type="button" class="btn btn-secondary" id="locate-btn" style="width:100%;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg>
+            Use my current location
+          </button>
+          <div id="search-alert" aria-live="polite"></div>
+          <div id="search-results" class="result-list" hidden></div>
+        </section>
+
+        <section class="card area-map" aria-labelledby="map-title">
+          <h2 class="step-title" id="map-title"><span class="step-num">2</span>Outline your roof</h2>
+          <div class="map-toolbar" role="toolbar" aria-label="Roof tools">
+            <button type="button" class="btn btn-secondary btn-small" id="detect-btn" aria-pressed="false">Detect roof</button>
+            <button type="button" class="btn btn-secondary btn-small" id="trace-btn">Trace roof</button>
+            <button type="button" class="btn btn-ghost btn-small" id="clear-btn">Clear roofs</button>
+            <span class="zoom-indicator" id="zoom-indicator" aria-live="polite"></span>
+          </div>
+          <div class="map-wrap">
+            <div id="map" aria-label="Satellite map. Use the search or your location to move it, then detect or trace your roof."></div>
+            <div id="map-alert" class="map-alert" aria-live="polite"></div>
+            <div class="map-loading" id="map-loading" hidden><span class="spinner" aria-hidden="true"></span><span>Detecting roof</span></div>
+          </div>
+          <p class="map-help">Press <strong>Detect roof</strong>, then click the middle of your roof. To draw it yourself, press <strong>Trace roof</strong>, click each corner and click the first corner again to finish. Use the edit button on the map to move corners.</p>
+        </section>
+
+        <section class="card area-details" aria-labelledby="details-title">
+          <h2 class="step-title" id="details-title"><span class="step-num">3</span>Your electricity use</h2>
+          <form id="estimate-form" novalidate>
+            <div class="field">
+              <label for="area">Roof area (m²)</label>
+              <input id="area" type="number" min="1" max="5000" step="0.1" placeholder="Fills in when you outline the roof" aria-describedby="area-hint area-error" required>
+              <p class="hint" id="area-hint">You can also type it if you know it.</p>
+              <p class="field-error" id="area-error" hidden></p>
+            </div>
+            <div class="field">
+              <label for="units">Monthly electricity use (units)</label>
+              <input id="units" type="number" min="1" max="20000" step="1" value="300" aria-describedby="units-hint units-error" required>
+              <p class="hint" id="units-hint">The average "units consumed" on your bill. One unit is one kWh.</p>
+              <p class="field-error" id="units-error" hidden></p>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="tariff">Tariff (₹ per unit)</label>
+                <input id="tariff" type="number" min="0.1" max="30" step="0.1" value="7" aria-describedby="tariff-error" required>
+                <p class="field-error" id="tariff-error" hidden></p>
+              </div>
+              <div class="field">
+                <label for="export">Export rate (₹ per unit)</label>
+                <input id="export" type="number" min="0" max="30" step="0.1" value="3" aria-describedby="export-error" required>
+                <p class="field-error" id="export-error" hidden></p>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="cost">Install cost (₹ per kW)</label>
+                <input id="cost" type="number" min="1000" max="200000" step="1000" value="60000" aria-describedby="cost-error" required>
+                <p class="field-error" id="cost-error" hidden></p>
+              </div>
+              <div class="field">
+                <label for="kwp">System size (kW)</label>
+                <input id="kwp" type="number" min="0.5" max="500" step="0.5" placeholder="Automatic" aria-describedby="kwp-error">
+                <p class="field-error" id="kwp-error" hidden></p>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary" id="estimate-btn" style="width:100%;">Calculate estimate</button>
+          </form>
+          <div id="estimate-alert" aria-live="polite"></div>
+        </section>
+      </div>
+
+      <section class="results" id="results" aria-labelledby="results-title" hidden>
+        <div class="results-head">
+          <h2 id="results-title" tabindex="-1">Your estimate</h2>
+          <button type="button" class="btn btn-secondary btn-small no-print" id="print-btn">Print or save as PDF</button>
+        </div>
+        <div class="print-only card" id="print-summary"></div>
+        <div class="stat-grid" id="stats"></div>
+
+        <article class="card chart-card">
+          <h3>Monthly generation compared with your use</h3>
+          <p class="chart-desc">Bars show how many units the recommended system would generate each month in a typical year (the middle value of 20 years of weather). The dashed line is your monthly use. Where a bar rises above the line, the surplus is exported to the grid and earns the export rate. Generation dips in the monsoon months because of cloud cover.</p>
+          <div class="chart-box"><canvas id="gen-chart" role="img" aria-label="Bar chart of monthly solar generation compared with monthly electricity use"></canvas></div>
+          <ul class="insights" id="gen-insights"></ul>
+        </article>
+
+        <article class="card chart-card">
+          <h3>Cumulative savings over 25 years</h3>
+          <p class="chart-desc">The line starts below zero at your net cost after subsidy and rises with each year of bill savings. The year it crosses zero is your payback point; everything after that is profit. Savings grow faster later because tariffs are assumed to rise 3% a year, while panels lose 0.5% of output a year.</p>
+          <div class="chart-box"><canvas id="cash-chart" role="img" aria-label="Line chart of cumulative savings over 25 years"></canvas></div>
+          <ul class="insights" id="cash-insights"></ul>
+        </article>
+
+        <article class="card chart-card">
+          <h3>How generation varies from year to year</h3>
+          <p class="chart-desc">Each bar is what the same system would have generated with the actual weather of that year from 2004 to 2023. The solid line is the typical year (P50) and the dashed line is the poor-year figure (P90), the output exceeded in 9 out of 10 years. Lenders and installers use P90 as the safe planning number. The scale does not start at zero, so the differences between years look larger than they are.</p>
+          <div class="chart-box"><canvas id="year-chart" role="img" aria-label="Bar chart of annual generation for each year from 2004 to 2023"></canvas></div>
+          <ul class="insights" id="year-insights"></ul>
+        </article>
+
+        <p class="disclaimer">These are estimates, not a quote. Subsidy follows central financial assistance for residential systems under <a href="https://pmsuryaghar.gov.in/" target="_blank" rel="noopener">PM Surya Ghar: Muft Bijli Yojana</a>; state top-ups are not included. Actual output depends on shade, panel tilt and installation quality, so get a site survey before you buy.</p>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <a class="logo" href="/" aria-label="Rooftop Solar Planner home">
+            <img src="/assets/img/logo.svg" alt="" width="30" height="30">
+            <span>Rooftop Solar Planner</span>
+          </a>
+          <p style="margin-top:10px;">Questions or a wrong result? Email <a href="mailto:neelisettycharansai@gmail.com">neelisettycharansai@gmail.com</a>.</p>
+        </div>
+        <div>
+          <h2>Links</h2>
+          <ul>
+            <li><a href="/">Home</a></li>
+            <li><a href="/#faq">FAQ</a></li>
+            <li><a href="https://www.linkedin.com/in/charan-sai-neelisetty-616021328/" target="_blank" rel="noopener">LinkedIn</a></li>
+            <li><a href="https://github.com/Charan7sai/solar-planner" target="_blank" rel="noopener">Source code</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2>Data sources</h2>
+          <ul>
+            <li><a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener">NASA POWER</a> for sunlight and temperature</li>
+            <li>Esri, Maxar and Earthstar Geographics for imagery</li>
+            <li><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a> for map data and search</li>
+          </ul>
+        </div>
+      </div>
+      <p class="footer-bottom">© <span data-year>2026</span> Charan Sai Neelisetty</p>
+    </div>
+  </footer>
+
+  <button class="icon-btn back-to-top" type="button" data-back-to-top aria-label="Back to top" title="Back to top">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+  </button>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet.tilelayer.fallback@1.0.4/dist/leaflet.tilelayer.fallback.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="/assets/js/site.js?v=14"></script>
+  <script src="/assets/js/planner.js?v=14"></script>
+</body>
+</html>
