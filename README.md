@@ -61,7 +61,8 @@ pip install pytest && python -m pytest
 ## Roadmap
 
 - [x] **Roof segmentation baseline:** U-Net on 21k aerial tiles, 0.308 test IoU on unseen locations ([details](ml/README.md))
-- [ ] **Automatic roof detection:** pretrained encoder + drop-a-pin detection in the app
+- [x] **Pretrained model + CPU export:** ResNet-34 U-Net, 0.321 test IoU, INT8 ONNX (24.7 MB, <0.3 s per area)
+- [ ] **Drop-a-pin roof detection** in the app
 - [ ] **Shading model:** estimate obstruction losses from building heights
 - [ ] **Learned yield correction:** train on real inverter data to correct the physics model
 - [ ] State-wise tariff slabs and DISCOM net-metering rules

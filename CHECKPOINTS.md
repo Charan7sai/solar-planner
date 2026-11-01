@@ -14,9 +14,11 @@ Each checkpoint ends in a working, tested app and is pushed to GitHub as its own
 - Per-country analysis: ~0.60 IoU on familiar imagery, 0.12 on Peru, so we need better generalisation
 - Data pipeline, resumable training, evaluation and write-up in [`ml/`](ml/README.md)
 
-## ⬜ CP3: Better model + export
-- Fine-tune an ImageNet-pretrained encoder (U-Net/SegFormer), train on all 11 shards, beat 0.308 test IoU
-- Quantize to ONNX for fast CPU inference (< 1 s per roof)
+## ✅ CP3: Better model + export
+- ImageNet-pretrained ResNet-34 U-Net: **test IoU 0.321 / F1 0.486** vs 0.308 / 0.471 baseline (selected on validation)
+- Learning-rate ablation; checkpoint and threshold chosen on validation only
+- ONNX + static INT8 quantization: **4x smaller (24.7 MB), no accuracy loss, 289 ms per 512 px area on 2 CPU threads**
+- Remaining gap: Peru-style rooftops (~0.12 IoU) need more diverse training data
 
 ## ⬜ CP4: Drop-a-pin auto roof detection
 - `/api/detect-roof`: fetch tiles around the pin, segment, return the roof polygon + area
