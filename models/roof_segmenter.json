@@ -1,0 +1,22 @@
+{
+  "source_run": "ml/runs/resnet34_unet",
+  "architecture": "U-Net with ImageNet-pretrained ResNet-34 encoder",
+  "format": "ONNX, static INT8 (QDQ, per-channel weights)",
+  "input": "1x3xHxW float32 RGB, H and W divisible by 32, zoom-19 imagery (~0.3 m/px)",
+  "mean": [
+    0.485,
+    0.456,
+    0.406
+  ],
+  "std": [
+    0.229,
+    0.224,
+    0.225
+  ],
+  "pixel_threshold": 0.2,
+  "pin_threshold": 0.35,
+  "pin_core_threshold": 0.65,
+  "pin_note": "Watershed post-processing chosen on validation buildings (ml/runs/detection_eval.json)",
+  "test_iou": 0.3206,
+  "license_note": "Trained on HOT Building Segmentation (OpenAerialMap imagery CC-BY-4.0, OpenStreetMap labels ODbL)"
+}
