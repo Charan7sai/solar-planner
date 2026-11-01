@@ -8,3 +8,6 @@ pyarrow
 huggingface_hub
 matplotlib
 tqdm
+onnx
+onnxruntime
+onnxscript
