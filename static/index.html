@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rooftop Solar Planner</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>☀️ Rooftop Solar Planner</h1>
+    <p>Find your roof, outline it, and see what solar would generate and save, using 20 years of NASA satellite data for your exact location.</p>
+  </header>
+
+  <main>
+    <section class="panel map-panel">
+      <form id="search" class="search">
+        <input id="q" type="search" placeholder="Search your address or area…" autocomplete="off">
+        <button type="submit">Find</button>
+      </form>
+      <div id="map"></div>
+      <p class="hint">Zoom into your building, then use the <b>polygon tool</b> (top-left) to trace the usable roof.</p>
+    </section>
+
+    <section class="panel">
+      <form id="inputs" class="inputs">
+        <label>Roof area (m²)
+          <input id="area" type="number" min="1" step="0.1" required placeholder="Draw on map or type">
+        </label>
+        <label>Monthly electricity use (units / kWh)
+          <input id="units" type="number" min="1" value="300" required>
+        </label>
+        <label>Your tariff (₹/unit)
+          <input id="tariff" type="number" min="0.1" step="0.1" value="7">
+        </label>
+        <label>Export credit (₹/unit)
+          <input id="export" type="number" min="0" step="0.1" value="3">
+        </label>
+        <label>Install cost (₹/kW)
+          <input id="cost" type="number" min="1000" step="1000" value="60000">
+        </label>
+        <label>System size override (kW)
+          <input id="kwp" type="number" min="0.5" step="0.5" placeholder="Auto">
+        </label>
+        <button type="submit" id="go">Estimate</button>
+      </form>
+      <p id="status" class="status" role="status"></p>
+    </section>
+
+    <section id="results" class="results" hidden>
+      <div class="cards" id="cards"></div>
+      <div class="panel chart-box">
+        <h2>Monthly generation vs. your use</h2>
+        <canvas id="genChart"></canvas>
+      </div>
+      <div class="panel chart-box">
+        <h2>Cumulative savings over 25 years</h2>
+        <canvas id="cashChart"></canvas>
+      </div>
+      <div class="panel chart-box">
+        <h2>Year-to-year variability (2004–2023 weather)</h2>
+        <canvas id="yearChart"></canvas>
+      </div>
+      <p class="fine">Estimates only. Subsidy follows PM Surya Ghar central assistance for residential systems. Actual output depends on shading, tilt and installer quality. Get a site survey before you buy.</p>
+    </section>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
