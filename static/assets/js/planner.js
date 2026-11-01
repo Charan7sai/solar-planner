@@ -240,7 +240,7 @@
       city: $("city").value.trim(),
     };
     if (!PINCODE.test(fields.pincode)) {
-      fieldError($("pincode"), fields.pincode ? "A pincode has 6 digits and does not start with 0." : "Enter your 6-digit pincode.");
+      fieldError($("pincode"), fields.pincode ? "A pincode has 6 digits and does not start with 0." : "Enter your 6 digit pincode.");
       $("pincode").focus();
       return;
     }
@@ -413,7 +413,7 @@
       if (!data.found) {
         track("roof_not_found");
         showAlert("map-alert", "warning", "No roof found at that spot. ",
-          "Click nearer the middle of the roof. Very dark, very small or tree-covered roofs are hard for the model to see; trace those yourself.", [traceAction]);
+          "Click nearer the middle of the roof. Roofs that are very dark, very small or covered by trees are hard for the model to see, so trace those yourself.", [traceAction]);
         return;
       }
 
@@ -424,7 +424,7 @@
       const lowRes = data.imagery_zoom < 19;
       showAlert("map-alert", lowRes ? "warning" : "success",
         "Roof outlined: " + data.area_m2 + " m². ",
-        (lowRes ? "Only lower-resolution imagery exists here, so check the outline carefully. " : "") +
+        (lowRes ? "Only lower resolution imagery exists here, so check the outline carefully. " : "") +
         "If it is off, use the edit button on the map to drag the corners. Click another roof to add it, or continue to step 3.",
         null, lowRes ? 0 : 8000);
     } catch (err) {
@@ -749,4 +749,21 @@
 
   // Redraw charts in the new colours when the theme changes
   document.addEventListener("themechange", () => { if (lastResult) drawCharts(lastResult.data, lastResult.input); });
+
+  // Charts are images, so print them in light-theme colours even when the page is dark
+  let themeBeforePrint = null;
+  window.addEventListener("beforeprint", () => {
+    if (!lastResult) return;
+    themeBeforePrint = document.documentElement.dataset.theme || "";
+    document.documentElement.dataset.theme = "light";
+    drawCharts(lastResult.data, lastResult.input);
+    Object.values(charts).forEach((chart) => chart.resize());
+  });
+  window.addEventListener("afterprint", () => {
+    if (themeBeforePrint === null) return;
+    if (themeBeforePrint) document.documentElement.dataset.theme = themeBeforePrint;
+    else delete document.documentElement.dataset.theme;
+    themeBeforePrint = null;
+    if (lastResult) drawCharts(lastResult.data, lastResult.input);
+  });
 })();

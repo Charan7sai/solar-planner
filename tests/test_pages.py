@@ -1,4 +1,5 @@
 import re
+from html.parser import HTMLParser
 from pathlib import Path
 
 import pytest
@@ -24,7 +25,8 @@ def test_planner_page_and_redirect():
     r = client.get("/planner/")
     assert r.status_code == 200
     assert "<title>Planner | Rooftop Solar Planner</title>" in r.text
-    assert "https://pmsuryaghar.gov.in/" in r.text
+    assert "https://www.pib.gov.in/PressReleasePage.aspx?PRID=2010674" in r.text
+    assert "DISCLAIMER:" in r.text
 
 
 def test_custom_404_page():
@@ -33,8 +35,9 @@ def test_custom_404_page():
     assert "Page not found" in r.text
 
 
-@pytest.mark.parametrize("path", ["/favicon.ico", "/favicon.svg", "/robots.txt", "/assets/img/logo.svg",
-                                  "/assets/css/site.css", "/assets/js/site.js", "/assets/js/planner.js"])
+@pytest.mark.parametrize("path", ["/favicon.ico", "/favicon-32.png", "/icon-192.png", "/apple-touch-icon.png",
+                                  "/robots.txt", "/assets/img/logo.png", "/assets/css/site.css",
+                                  "/assets/js/site.js", "/assets/js/planner.js"])
 def test_static_assets_exist(path):
     assert client.get(path).status_code == 200
 
@@ -66,3 +69,49 @@ def test_track_accepts_known_events_and_drops_unknown_utm_keys(capsys):
 
 def test_track_rejects_unknown_events():
     assert client.post("/api/track", json={"event": "drop_tables"}).status_code == 422
+
+
+class _VisibleText(HTMLParser):
+    """Collects text a visitor reads: page text plus alt, title, placeholder, aria-label and descriptions."""
+    ATTRS = {"alt", "title", "placeholder", "aria-label"}
+
+    def __init__(self):
+        super().__init__()
+        self.skip = 0
+        self.chunks = []
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag in ("script", "style"):
+            self.skip += 1
+        for key in self.ATTRS & attrs.keys():
+            self.chunks.append(attrs[key] or "")
+        if tag == "meta" and attrs.get("name") == "description":
+            self.chunks.append(attrs.get("content") or "")
+
+    def handle_endtag(self, tag):
+        if tag in ("script", "style"):
+            self.skip -= 1
+
+    def handle_data(self, data):
+        if not self.skip:
+            self.chunks.append(data)
+
+
+def test_site_copy_has_no_hyphenated_words():
+    hyphenated = re.compile(r"\b[A-Za-z0-9]+(?:-[A-Za-z]+)+\b")
+    allowed = {"charan-sai-neelisetty"}  # part of the LinkedIn URL, shown only in the printout
+    for page in ["index.html", "planner/index.html", "404.html"]:
+        parser = _VisibleText()
+        parser.feed((STATIC / page).read_text(encoding="utf-8"))
+        words = set(hyphenated.findall(" ".join(parser.chunks))) - allowed
+        assert not words, f"{page} has hyphenated words: {sorted(words)}"
+    script = (STATIC / "assets/js/planner.js").read_text(encoding="utf-8")
+    messages = re.findall(r'"([^"\n]* [^"\n]*)"', script)
+    words = {w for m in messages if m[:1].isupper() for w in hyphenated.findall(m)}  # sentences, not CSS classes
+    assert not words, f"planner.js messages have hyphenated words: {sorted(words)}"
+
+
+def test_blocked_scheme_portal_is_not_linked():
+    for page in ["index.html", "planner/index.html", "404.html"]:
+        assert "pmsuryaghar.gov.in" not in (STATIC / page).read_text(encoding="utf-8")
