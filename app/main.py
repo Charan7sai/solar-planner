@@ -1,10 +1,13 @@
+import json
 import os
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Literal
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from . import finance, roof, solar
 
@@ -40,6 +43,38 @@ class PinRequest(BaseModel):
 
 def imagery_key() -> str | None:
     return os.environ.get("ARCGIS_API_KEY") or None
+
+
+UTM_KEYS = {"utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"}
+
+
+class TrackEvent(BaseModel):
+    """Anonymous usage event. Never contains coordinates, addresses or other personal data."""
+    event: Literal["page_view", "search", "location_used", "roof_detected", "roof_not_found",
+                   "roof_detect_error", "estimate"]
+    path: str = Field("", max_length=200)
+    referrer: str = Field("", max_length=200)
+    utm: dict[str, str] = Field(default_factory=dict)
+    data: dict[str, str | int | float | bool | None] = Field(default_factory=dict)
+
+    @field_validator("utm")
+    @classmethod
+    def known_utm_keys(cls, v: dict[str, str]) -> dict[str, str]:
+        return {k: val[:100] for k, val in v.items() if k in UTM_KEYS}
+
+    @field_validator("data")
+    @classmethod
+    def small_payload(cls, v: dict) -> dict:
+        if len(v) > 10:
+            raise ValueError("too many fields")
+        return {k[:40]: (val[:100] if isinstance(val, str) else val) for k, val in v.items()}
+
+
+@app.post("/api/track", status_code=204)
+def track(evt: TrackEvent):
+    # One JSON line per event in the server log (Hugging Face Spaces keeps these), no third-party analytics
+    print("event " + json.dumps({"ts": datetime.now(timezone.utc).isoformat(timespec="seconds"), **evt.model_dump()}), flush=True)
+    return Response(status_code=204)
 
 
 @app.get("/api/health")
