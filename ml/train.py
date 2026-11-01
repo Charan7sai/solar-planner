@@ -1,7 +1,8 @@
-"""Train the baseline roof-segmentation U-Net and evaluate it on held-out locations.
+"""Train a roof-segmentation model and evaluate it on held-out locations.
 
 Usage:
     python ml/train.py --epochs 15 --run unet_baseline
+    python ml/train.py --arch resnet34_unet --lr 5e-4 --epochs 15 --run resnet34_unet
 Outputs (ml/runs/<run>/): metrics.json, history.csv, predictions.png, checkpoints/best.pt
 """
 from __future__ import annotations
@@ -23,7 +24,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 
 from dataset import RoofDataset, to_display  # noqa: E402
 from metrics import SegMetrics, bce_dice_loss  # noqa: E402
-from model import UNet, count_params  # noqa: E402
+from model import ARCHS, build_model, count_params, describe  # noqa: E402
 
 RUNS_DIR = Path(__file__).parent / "runs"
 
@@ -70,6 +71,7 @@ def write_history(path: Path, history: list[dict]) -> None:
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--run", default="unet_baseline")
+    p.add_argument("--arch", choices=ARCHS, default="unet")
     p.add_argument("--epochs", type=int, default=15)
     p.add_argument("--batch-size", type=int, default=16)
     p.add_argument("--lr", type=float, default=1e-3)
@@ -95,7 +97,7 @@ def main():
     train_dl = DataLoader(train_ds, shuffle=True, drop_last=True, **loader_kw)
     val_dl = DataLoader(val_ds, **loader_kw)
 
-    model = UNet(base=args.base).to(device)
+    model = build_model(args.arch, args.base).to(device)
     print(f"device={device} params={count_params(model) / 1e6:.2f}M "
           f"train={len(train_ds)} val={len(val_ds)} test={len(test_ds)}")
 
@@ -140,13 +142,14 @@ def main():
 
         if val["iou"] > best_iou:
             best_iou = val["iou"]
-            torch.save({"model": model.state_dict(), "base": args.base, "epoch": epoch}, run_dir / "checkpoints" / "best.pt")
+            torch.save({"model": model.state_dict(), "arch": args.arch, "base": args.base, "epoch": epoch}, run_dir / "checkpoints" / "best.pt")
 
         # Persist everything each epoch so an interrupted run can continue with --resume
         write_history(run_dir / "history.csv", history)
         torch.save({
             "model": model.state_dict(), "opt": opt.state_dict(), "sched": sched.state_dict(),
-            "scaler": scaler.state_dict(), "epoch": epoch, "history": history, "best_iou": best_iou,
+            "scaler": scaler.state_dict(), "arch": args.arch, "base": args.base, "epoch": epoch,
+            "history": history, "best_iou": best_iou,
             "seconds": time.time() - start,
         }, last_path)
 
@@ -156,7 +159,7 @@ def main():
     val_best = max(history, key=lambda r: r["val_iou"])
 
     summary = {
-        "model": f"U-Net (from scratch, base={args.base})",
+        "model": describe(args.arch, args.base),
         "params_millions": round(count_params(model) / 1e6, 2),
         "train_tiles": len(train_ds),
         "val_tiles": len(val_ds),
