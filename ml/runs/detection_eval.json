@@ -1,0 +1,71 @@
+{
+  "selected_on_validation": "watershed@0.35/0.65",
+  "threshold": 0.35,
+  "core_threshold": 0.65,
+  "validation": {
+    "buildings": 300,
+    "methods": {
+      "components@0.2": {
+        "found_rate": 0.833,
+        "mean_iou": 0.312,
+        "median_iou": 0.209,
+        "share_iou_over_0.5": 0.277,
+        "median_area_error": 0.987
+      },
+      "components@0.35": {
+        "found_rate": 0.81,
+        "mean_iou": 0.351,
+        "median_iou": 0.293,
+        "share_iou_over_0.5": 0.353,
+        "median_area_error": 0.6
+      },
+      "components@0.5": {
+        "found_rate": 0.77,
+        "mean_iou": 0.372,
+        "median_iou": 0.339,
+        "share_iou_over_0.5": 0.397,
+        "median_area_error": 0.389
+      },
+      "components@0.65": {
+        "found_rate": 0.753,
+        "mean_iou": 0.375,
+        "median_iou": 0.358,
+        "share_iou_over_0.5": 0.403,
+        "median_area_error": 0.338
+      },
+      "watershed@0.2/0.5": {
+        "found_rate": 0.787,
+        "mean_iou": 0.383,
+        "median_iou": 0.382,
+        "share_iou_over_0.5": 0.413,
+        "median_area_error": 0.436
+      },
+      "watershed@0.35/0.65": {
+        "found_rate": 0.757,
+        "mean_iou": 0.403,
+        "median_iou": 0.447,
+        "share_iou_over_0.5": 0.44,
+        "median_area_error": 0.329
+      }
+    }
+  },
+  "test": {
+    "buildings": 300,
+    "methods": {
+      "watershed@0.35/0.65": {
+        "found_rate": 0.653,
+        "mean_iou": 0.378,
+        "median_iou": 0.304,
+        "share_iou_over_0.5": 0.397,
+        "median_area_error": 0.207
+      },
+      "components@0.2": {
+        "found_rate": 0.673,
+        "mean_iou": 0.326,
+        "median_iou": 0.209,
+        "share_iou_over_0.5": 0.32,
+        "median_area_error": 0.39
+      }
+    }
+  }
+}
