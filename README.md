@@ -60,7 +60,8 @@ pip install pytest && python -m pytest
 
 ## Roadmap
 
-- [ ] **Automatic roof detection:** fine-tune a U-Net/SegFormer on aerial rooftop data so users only drop a pin
+- [x] **Roof segmentation baseline:** U-Net on 21k aerial tiles, 0.308 test IoU on unseen locations ([details](ml/README.md))
+- [ ] **Automatic roof detection:** pretrained encoder + drop-a-pin detection in the app
 - [ ] **Shading model:** estimate obstruction losses from building heights
 - [ ] **Learned yield correction:** train on real inverter data to correct the physics model
 - [ ] State-wise tariff slabs and DISCOM net-metering rules

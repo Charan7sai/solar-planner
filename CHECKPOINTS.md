@@ -8,13 +8,14 @@ Each checkpoint ends in a working, tested app and is pushed to GitHub as its own
 - Sizing (roof vs. consumption), PM Surya Ghar subsidy, 25-year net-metering cash flow
 - Satellite map with manual roof tracing, charts, unit tests, Dockerfile
 
-## ⬜ CP2: Roof segmentation dataset + baseline model
-- Collect aerial rooftop images with masks (public building-footprint dataset + Indian city tiles)
-- Train a U-Net baseline and report IoU / F1 on a held-out set
-- Training script, data pipeline and results in `ml/`
+## ✅ CP2: Roof segmentation dataset + baseline model
+- HOT Building Segmentation data (21k train tiles, 15 countries; val/test from unseen locations)
+- U-Net trained from scratch: **test IoU 0.308 / F1 0.471** (threshold tuned on validation)
+- Per-country analysis: ~0.60 IoU on familiar imagery, 0.12 on Peru, so we need better generalisation
+- Data pipeline, resumable training, evaluation and write-up in [`ml/`](ml/README.md)
 
 ## ⬜ CP3: Better model + export
-- Fine-tune a pretrained SegFormer/U-Net encoder and compare with the baseline
+- Fine-tune an ImageNet-pretrained encoder (U-Net/SegFormer), train on all 11 shards, beat 0.308 test IoU
 - Quantize to ONNX for fast CPU inference (< 1 s per roof)
 
 ## ⬜ CP4: Drop-a-pin auto roof detection
