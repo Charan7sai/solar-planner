@@ -1,13 +1,12 @@
 ---
 title: Rooftop Solar Planner
-emoji: ☀️
 colorFrom: yellow
 colorTo: green
 sdk: docker
 app_port: 7860
 ---
 
-# ☀️ Rooftop Solar Planner
+# Rooftop Solar Planner
 
 Should *my* house go solar? **Click your roof on the satellite map and a deep-learning model outlines it**, then enter your electricity bill to get a system size, cost after the **PM Surya Ghar** subsidy, payback period and 25-year savings. Generation comes from **20 years of NASA POWER satellite data** for your exact coordinates.
 
@@ -73,6 +72,25 @@ pip install pytest && python -m pytest
 1. Create a new Space, choose **Docker**, then **Blank**.
 2. Push this folder to the Space's git repo. The YAML header above configures it.
 3. The app is live at `https://<user>-<space>.hf.space`.
+
+## Pages
+
+| Path | What it is |
+|---|---|
+| `/` | Landing page: how it works, accuracy and limits, FAQ, contact |
+| `/planner/` | The planner: pincode or current-location search, roof detection, estimate with charts |
+| anything else | Custom 404 page |
+
+Light and dark themes (remembered per browser), a print stylesheet for saving the estimate as a PDF,
+and no third-party analytics.
+
+### Campaign tracking (UTM)
+
+Add UTM parameters to links you share, for example
+`https://<your-site>/?utm_source=linkedin&utm_medium=social&utm_campaign=launch`.
+The parameters are kept for the browser tab and sent with anonymous usage events
+(`page_view`, `search`, `location_used`, `roof_detected`, `estimate`, ...) to `POST /api/track`,
+which writes one JSON line per event to the server log. Events never include coordinates or addresses.
 
 ## API
 
