@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import httpx
@@ -5,8 +6,19 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import finance, solar
+from . import finance, roof, solar
 
+
+def _load_dotenv(path: Path = Path(__file__).parent.parent / ".env") -> None:
+    """Read KEY=value lines from a local .env (kept out of git) without overriding real env vars."""
+    if path.exists():
+        for line in path.read_text().splitlines():
+            key, sep, value = line.partition("=")
+            if sep and not key.strip().startswith("#"):
+                os.environ.setdefault(key.strip(), value.strip().strip("'\""))
+
+
+_load_dotenv()
 app = FastAPI(title="Rooftop Solar Planner")
 
 
@@ -21,9 +33,38 @@ class EstimateRequest(BaseModel):
     kwp: float | None = Field(None, gt=0, le=500, description="Override the recommended size")
 
 
+class PinRequest(BaseModel):
+    lat: float = Field(ge=-85, le=85)
+    lon: float = Field(ge=-180, le=180)
+
+
+def imagery_key() -> str | None:
+    return os.environ.get("ARCGIS_API_KEY") or None
+
+
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/api/config")
+def config():
+    # ArcGIS basemap keys are meant to be used in browsers; restrict yours to this site's referrer
+    return {"arcgis_api_key": imagery_key()}
+
+
+@app.post("/api/detect-roof")
+async def detect_roof(req: PinRequest):
+    key = imagery_key()
+    if not key:
+        raise HTTPException(503, "Roof detection needs satellite imagery: set the ARCGIS_API_KEY environment variable")
+    try:
+        result = await roof.detect_roof(req.lat, req.lon, key)
+    except (roof.ImageryUnavailable, httpx.HTTPError) as exc:
+        raise HTTPException(502, f"Satellite imagery unavailable here: {exc}") from exc
+    if result is None:
+        return {"found": False}
+    return {"found": True, **result}
 
 
 @app.post("/api/estimate")
