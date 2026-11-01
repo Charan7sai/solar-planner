@@ -1,0 +1,27 @@
+{
+  "model": "U-Net (from scratch, base=32)",
+  "params_millions": 7.76,
+  "train_tiles": 21052,
+  "val_tiles": 7237,
+  "test_tiles": 7236,
+  "epochs": 15,
+  "best_epoch": 9,
+  "val": {
+    "loss": 0.6727,
+    "iou": 0.3635,
+    "f1": 0.5332,
+    "precision": 0.7552,
+    "recall": 0.4121,
+    "accuracy": 0.9262
+  },
+  "test": {
+    "loss": 0.9498,
+    "iou": 0.2832,
+    "f1": 0.4414,
+    "precision": 0.6104,
+    "recall": 0.3457,
+    "accuracy": 0.9059
+  },
+  "train_minutes": 105.8,
+  "device": "NVIDIA GeForce RTX 3050 Laptop GPU"
+}
