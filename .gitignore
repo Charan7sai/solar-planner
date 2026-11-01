@@ -4,3 +4,8 @@ __pycache__/
 .venv/
 .env
 .claude/
+ml/data/
+ml/runs/*/checkpoints/
+*.pt
+*.onnx
+ml/*.log
