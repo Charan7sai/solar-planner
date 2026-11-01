@@ -12,48 +12,13 @@
 
   // ---------- Messages ----------
 
-  const alertTimers = {};
-
-  // autoHide (ms) lets confirmations on the map fade so they don't cover the roof outline
-  function showAlert(slotId, type, title, body, actions, autoHide) {
-    const slot = $(slotId);
-    clearTimeout(alertTimers[slotId]);
-    slot.replaceChildren();
-    if (!title) return;
-    const box = document.createElement("div");
-    box.className = "alert alert-" + type;
-    box.setAttribute("role", type === "error" ? "alert" : "status");
-    const text = document.createElement("p");
-    const strong = document.createElement("strong");
-    strong.textContent = title;
-    text.append(strong);
-    if (body) text.append(document.createTextNode(body));
-    box.append(text);
-    if (actions && actions.length) {
-      const row = document.createElement("div");
-      row.className = "alert-actions";
-      actions.forEach((action) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "btn btn-secondary btn-small";
-        button.textContent = action.label;
-        button.addEventListener("click", action.onClick);
-        row.append(button);
-      });
-      box.append(row);
-    }
-    const close = document.createElement("button");
-    close.type = "button";
-    close.className = "alert-close";
-    close.setAttribute("aria-label", "Dismiss message");
-    close.textContent = "×";
-    close.addEventListener("click", () => slot.replaceChildren());
-    box.append(close);
-    slot.append(box);
-    if (autoHide) alertTimers[slotId] = setTimeout(() => { if (box.isConnected) slot.replaceChildren(); }, autoHide);
+  // Messages pop up as notifications (see notify in site.js). The first argument names the
+  // source, so a new message from the same step replaces the previous one instead of stacking.
+  function showAlert(source, type, title, body, actions, autoHide) {
+    window.notify(source, type, title, body, actions, autoHide);
   }
 
-  function clearAlert(slotId) { $(slotId).replaceChildren(); }
+  function clearAlert(source) { window.notify.clear(source); }
 
   function setBusy(button, busy, busyLabel) {
     if (busy) {
@@ -117,6 +82,7 @@
       L.tileLayer(base + "/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}?token=" + imageryKey, {
         maxZoom: 20, maxNativeZoom: 19,
       }).addTo(map);
+      updateImageryDate();
     } else {
       L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19, attribution: "© OpenStreetMap contributors",
@@ -139,6 +105,40 @@
   }
   map.on("zoomend", updateZoomIndicator);
   updateZoomIndicator();
+
+  // ---------- Imagery capture date ----------
+
+  let imageryTimer = null;
+  let imageryRequest = 0;
+  let lastImagery = null;
+
+  function formatDate(iso) {
+    return new Date(iso + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  }
+
+  function updateImageryDate() {
+    const line = $("imagery-date");
+    clearTimeout(imageryTimer);
+    if (!imageryKey || map.getZoom() < 14) { line.textContent = ""; lastImagery = null; return; }
+    imageryTimer = setTimeout(async () => {
+      const request = ++imageryRequest;
+      const c = map.getCenter();
+      line.textContent = "Checking when this imagery was captured";
+      try {
+        const res = await fetch("/api/imagery-date?lat=" + c.lat.toFixed(5) + "&lon=" + c.lng.toFixed(5));
+        const d = await res.json();
+        if (request !== imageryRequest) return;  // the map moved again meanwhile
+        lastImagery = d.found ? d : null;
+        line.textContent = d.found
+          ? "Satellite imagery here was captured on " + formatDate(d.captured) +
+            (d.resolution_m ? ", with about " + Math.round(d.resolution_m * 100) + " cm detail." : ".")
+          : "The capture date of this imagery is not available.";
+      } catch (e) {
+        if (request === imageryRequest) line.textContent = "";
+      }
+    }, 600);
+  }
+  map.on("moveend", updateImageryDate);
 
   function updateArea() {
     let total = 0;
@@ -627,7 +627,9 @@
     summary.textContent = "Location " + input.lat.toFixed(5) + ", " + input.lon.toFixed(5) +
       ". Roof area " + input.roof_area_m2 + " m²" + (roofCount ? " from " + roofCount + " outlined roof" + (roofCount > 1 ? "s" : "") : "") +
       ". Monthly use " + num(input.monthly_units) + " units at " + inr(input.tariff) + " per unit, export rate " + inr(input.export_rate) +
-      ", install cost " + inr(input.cost_per_kw) + " per kW. Generated " + new Date().toLocaleDateString("en-IN") + ".";
+      ", install cost " + inr(input.cost_per_kw) + " per kW." +
+      (lastImagery ? " Satellite imagery captured " + formatDate(lastImagery.captured) + "." : "") +
+      " Generated " + new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) + ".";
     $("print-summary").append(summary);
 
     drawCharts(d, input);

@@ -119,6 +119,84 @@
   };
   window.track("page_view");
 
+  // ---- Pop-up notifications ----
+  // notify(key, type, title, body, actions, autoHideMs): a newer message with the same key replaces
+  // the older one. Success and info messages close themselves; errors stay until dismissed.
+  const AUTO_HIDE = { success: 6000, info: 6000, warning: 10000, error: 0 };
+  const MAX_TOASTS = 3;
+  let region = null;
+  const live = new Map();
+
+  function toastRegion() {
+    if (!region) {
+      region = document.createElement("div");
+      region.className = "toast-region";
+      region.setAttribute("aria-live", "polite");
+      document.body.append(region);
+    }
+    return region;
+  }
+
+  function dismiss(key) {
+    const entry = live.get(key);
+    if (!entry) return;
+    clearTimeout(entry.timer);
+    live.delete(key);
+    entry.el.classList.add("leaving");
+    setTimeout(() => entry.el.remove(), reduceMotion.matches ? 0 : 180);
+  }
+
+  window.notify = function (key, type, title, body, actions, autoHide) {
+    dismiss(key);
+    if (!title) return;
+    const el = document.createElement("div");
+    el.className = "toast alert alert-" + type;
+    el.setAttribute("role", type === "error" ? "alert" : "status");
+
+    const text = document.createElement("p");
+    const strong = document.createElement("strong");
+    strong.textContent = title;
+    text.append(strong);
+    if (body) text.append(document.createTextNode(body));
+    el.append(text);
+
+    if (actions && actions.length) {
+      const row = document.createElement("div");
+      row.className = "alert-actions";
+      actions.forEach((action) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "btn btn-secondary btn-small";
+        button.textContent = action.label;
+        button.addEventListener("click", () => { dismiss(key); action.onClick(); });
+        row.append(button);
+      });
+      el.append(row);
+    }
+
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "alert-close";
+    close.setAttribute("aria-label", "Dismiss message");
+    close.textContent = "×";
+    close.addEventListener("click", () => dismiss(key));
+    el.append(close);
+
+    toastRegion().prepend(el);
+    const ms = autoHide === undefined || autoHide === null ? AUTO_HIDE[type] : autoHide;
+    const entry = { el: el, timer: null };
+    const arm = () => { if (ms) entry.timer = setTimeout(() => dismiss(key), ms); };
+    // Pause the countdown while the visitor is reading or using the message
+    el.addEventListener("mouseenter", () => clearTimeout(entry.timer));
+    el.addEventListener("mouseleave", arm);
+    el.addEventListener("focusin", () => clearTimeout(entry.timer));
+    live.set(key, entry);
+    arm();
+
+    while (live.size > MAX_TOASTS) dismiss(live.keys().next().value);
+  };
+  window.notify.clear = dismiss;
+
   // ---- Footer year ----
   document.querySelectorAll("[data-year]").forEach((el) => { el.textContent = String(new Date().getFullYear()); });
 })();

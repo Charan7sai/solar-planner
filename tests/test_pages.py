@@ -100,7 +100,7 @@ class _VisibleText(HTMLParser):
 
 def test_site_copy_has_no_hyphenated_words():
     hyphenated = re.compile(r"\b[A-Za-z0-9]+(?:-[A-Za-z]+)+\b")
-    allowed = {"charan-sai-neelisetty"}  # part of the LinkedIn URL, shown only in the printout
+    allowed: set[str] = set()
     for page in ["index.html", "planner/index.html", "404.html"]:
         parser = _VisibleText()
         parser.feed((STATIC / page).read_text(encoding="utf-8"))
