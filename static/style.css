@@ -23,6 +23,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }  /* .results sets display: grid, which would override hidden */
 body {
   margin: 0;
   background: var(--bg);
