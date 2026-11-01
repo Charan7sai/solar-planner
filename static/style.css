@@ -56,6 +56,10 @@ button {
   color: var(--accent-ink); background: var(--accent); border: 0; border-radius: 8px;
 }
 button:disabled { opacity: 0.6; cursor: wait; }
+button.secondary { flex-shrink: 0; background: transparent; color: var(--accent); border: 1px solid var(--accent); white-space: nowrap; }
+button.secondary.active { background: var(--accent); color: var(--accent-ink); }
+button.secondary:disabled { cursor: not-allowed; }
+#map.picking { cursor: crosshair; }
 
 .inputs { display: grid; gap: 12px; }
 .inputs label { display: grid; gap: 4px; font-size: 0.85rem; color: var(--muted); }

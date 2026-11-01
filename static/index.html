@@ -6,12 +6,12 @@
   <title>Rooftop Solar Planner</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
   <header>
     <h1>☀️ Rooftop Solar Planner</h1>
-    <p>Find your roof, outline it, and see what solar would generate and save, using 20 years of NASA satellite data for your exact location.</p>
+    <p>Click your roof and an AI model outlines it from satellite imagery. Then see what solar would generate and save, using 20 years of NASA data for your exact location.</p>
   </header>
 
   <main>
@@ -19,9 +19,10 @@
       <form id="search" class="search">
         <input id="q" type="search" placeholder="Search your address or area…" autocomplete="off">
         <button type="submit">Find</button>
+        <button type="button" id="detect" class="secondary" title="Click a roof and the AI model outlines it">📍 Detect roof</button>
       </form>
       <div id="map"></div>
-      <p class="hint">Zoom into your building, then use the <b>polygon tool</b> (top-left) to trace the usable roof.</p>
+      <p class="hint">Zoom into your building, press <b>Detect roof</b> and click the middle of your roof. The model outlines it for you. You can also trace it yourself with the <b>polygon tool</b> (top-left).</p>
     </section>
 
     <section class="panel">
@@ -70,6 +71,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>

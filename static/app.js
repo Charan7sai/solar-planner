@@ -4,13 +4,30 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 
 // ---- Map: satellite imagery + roof drawing ----
 const map = L.map("map").setView([20.6, 78.9], 5);
-L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
-  maxZoom: 20, maxNativeZoom: 19,
-  attribution: "Imagery © Esri, Maxar, Earthstar Geographics",
-}).addTo(map);
-L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", {
-  maxZoom: 20, maxNativeZoom: 19,
-}).addTo(map);
+const ARCGIS = "https://ibasemaps-api.arcgis.com/arcgis/rest/services";
+let detectionEnabled = false;
+
+(async function addBaseLayers() {
+  let key = null;
+  try { key = (await (await fetch("api/config")).json()).arcgis_api_key; } catch { /* offline config */ }
+  if (key) {
+    detectionEnabled = true;
+    L.tileLayer(`${ARCGIS}/World_Imagery/MapServer/tile/{z}/{y}/{x}?token=${key}`, {
+      maxZoom: 20, maxNativeZoom: 19,
+      attribution: "Powered by Esri | Imagery © Esri, Maxar, Earthstar Geographics",
+    }).addTo(map);
+    L.tileLayer(`${ARCGIS}/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}?token=${key}`, {
+      maxZoom: 20, maxNativeZoom: 19,
+    }).addTo(map);
+  } else {
+    // Without an imagery key, fall back to street map so the page still works; detection is off
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19, attribution: "© OpenStreetMap contributors",
+    }).addTo(map);
+    $("detect").disabled = true;
+    $("detect").title = "Satellite imagery is not configured on this server";
+  }
+})();
 
 const roofs = new L.FeatureGroup().addTo(map);
 map.addControl(new L.Control.Draw({
@@ -30,6 +47,41 @@ function updateArea() {
 map.on(L.Draw.Event.CREATED, (e) => { roofs.addLayer(e.layer); updateArea(); });
 map.on(L.Draw.Event.EDITED, updateArea);
 map.on(L.Draw.Event.DELETED, updateArea);
+
+// ---- Drop-a-pin roof detection (segmentation model on the server) ----
+let detecting = false;
+$("detect").addEventListener("click", () => {
+  detecting = !detecting;
+  $("detect").classList.toggle("active", detecting);
+  $("map").classList.toggle("picking", detecting);
+  setStatus(detecting ? "Click the middle of your roof." : "");
+});
+
+map.on("click", async (e) => {
+  if (!detecting || !detectionEnabled) return;
+  if (map.getZoom() < 17) return setStatus("Zoom in closer to your building first.", true);
+  const marker = L.circleMarker(e.latlng, { radius: 6, color: "#f5a13a" }).addTo(map);
+  setStatus("Detecting roof…");
+  try {
+    const res = await fetch("api/detect-roof", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lat: e.latlng.lat, lon: e.latlng.lng }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Detection failed");
+    if (!data.found) return setStatus("No roof found there. Click closer to the centre, or trace it manually.", true);
+
+    const ring = data.polygon.coordinates[0].slice(0, -1).map(([lon, lat]) => [lat, lon]);
+    roofs.addLayer(L.polygon(ring, { color: "#f5a13a", weight: 2 }));
+    updateArea();
+    setStatus(`Roof detected: ${data.area_m2} m² (confidence ${Math.round(data.confidence * 100)}%). ` +
+      "Use the edit tool to adjust corners, or click another roof to add it.");
+  } catch (err) {
+    setStatus(err.message, true);
+  } finally {
+    marker.remove();
+  }
+});
 
 // ---- Address search (OpenStreetMap Nominatim) ----
 $("search").addEventListener("submit", async (e) => {
