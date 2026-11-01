@@ -12,7 +12,8 @@ let detectionEnabled = false;
   try { key = (await (await fetch("api/config")).json()).arcgis_api_key; } catch { /* offline config */ }
   if (key) {
     detectionEnabled = true;
-    L.tileLayer(`${ARCGIS}/World_Imagery/MapServer/tile/{z}/{y}/{x}?token=${key}`, {
+    // Outside big cities Esri often lacks zoom-19 tiles; the fallback layer upscales the nearest lower zoom
+    L.tileLayer.fallback(`${ARCGIS}/World_Imagery/MapServer/tile/{z}/{y}/{x}?token=${key}`, {
       maxZoom: 20, maxNativeZoom: 19,
       attribution: "Powered by Esri | Imagery © Esri, Maxar, Earthstar Geographics",
     }).addTo(map);
@@ -74,7 +75,8 @@ map.on("click", async (e) => {
     const ring = data.polygon.coordinates[0].slice(0, -1).map(([lon, lat]) => [lat, lon]);
     roofs.addLayer(L.polygon(ring, { color: "#f5a13a", weight: 2 }));
     updateArea();
-    setStatus(`Roof detected: ${data.area_m2} m² (confidence ${Math.round(data.confidence * 100)}%). ` +
+    const lowRes = data.imagery_zoom < 19 ? " Only lower-resolution imagery exists here, so check the outline carefully." : "";
+    setStatus(`Roof detected: ${data.area_m2} m² (confidence ${Math.round(data.confidence * 100)}%).${lowRes} ` +
       "Use the edit tool to adjust corners, or click another roof to add it.");
   } catch (err) {
     setStatus(err.message, true);

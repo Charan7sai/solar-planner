@@ -1,3 +1,5 @@
+import asyncio
+
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient
@@ -81,3 +83,34 @@ def test_watershed_splits_touching_roofs():
     split = roof.extract_roof(prob, pin=(40, 60), threshold=0.35, core_threshold=0.65)
     assert merged["area_px"] > 3000             # A + strip + B
     assert split["area_px"] == pytest.approx(40 * 40, rel=0.15)
+
+
+def test_detect_falls_back_to_zoom_18(monkeypatch):
+    calls = []
+
+    async def fake_fetch(lat, lon, api_key, size=roof.WINDOW, zoom=roof.ZOOM):
+        calls.append(zoom)
+        if zoom == 19:
+            raise roof.TileMissing("no zoom-19 tile")
+        cx, cy = roof.latlon_to_pixel(lat, lon, zoom)
+        return np.zeros((size, size, 3), dtype=np.uint8), (int(cx) - size // 2, int(cy) - size // 2)
+
+    monkeypatch.setattr(roof, "fetch_window", fake_fetch)
+    monkeypatch.setattr(roof, "predict", lambda image: rectangle_prob(size=image.shape[0]))
+    result = asyncio.run(roof.detect_roof(LAT, LON, "test-key"))
+    assert calls == [19, 18]
+    assert result["imagery_zoom"] == 18
+    lons, lats = zip(*result["polygon"]["coordinates"][0])
+    assert min(lats) < LAT < max(lats) and min(lons) < LON < max(lons)
+
+
+def test_missing_imagery_returns_friendly_404(monkeypatch):
+    monkeypatch.setenv("ARCGIS_API_KEY", "test-key")
+
+    async def no_imagery(lat, lon, api_key, size=roof.WINDOW, zoom=roof.ZOOM):
+        raise roof.TileMissing("missing")
+
+    monkeypatch.setattr(roof, "fetch_window", no_imagery)
+    r = TestClient(main.app).post("/api/detect-roof", json={"lat": LAT, "lon": LON})
+    assert r.status_code == 404
+    assert "polygon tool" in r.json()["detail"]

@@ -35,6 +35,10 @@ class ImageryUnavailable(RuntimeError):
     pass
 
 
+class TileMissing(ImageryUnavailable):
+    """The imagery service has no tile at this zoom (common above zoom 18 outside big cities)."""
+
+
 # ---- Web Mercator pixel math ----
 
 def latlon_to_pixel(lat: float, lon: float, z: int = ZOOM) -> tuple[float, float]:
@@ -57,19 +61,22 @@ def meters_per_pixel(lat: float, z: int = ZOOM) -> float:
 
 # ---- Imagery ----
 
-async def fetch_window(lat: float, lon: float, api_key: str, size: int = WINDOW) -> tuple[np.ndarray, tuple[int, int]]:
+async def fetch_window(lat: float, lon: float, api_key: str, size: int = WINDOW,
+                       zoom: int = ZOOM) -> tuple[np.ndarray, tuple[int, int]]:
     """Mosaic the tiles covering a size x size window centred on the pin.
 
-    Returns the RGB image and the global pixel coordinate of its top-left corner.
+    Returns the RGB image and the global pixel coordinate (at that zoom) of its top-left corner.
     """
-    cx, cy = latlon_to_pixel(lat, lon)
+    cx, cy = latlon_to_pixel(lat, lon, zoom)
     x0, y0 = int(cx) - size // 2, int(cy) - size // 2
     tx_range = range(x0 // TILE, (x0 + size - 1) // TILE + 1)
     ty_range = range(y0 // TILE, (y0 + size - 1) // TILE + 1)
 
     async with httpx.AsyncClient(timeout=15) as client:
         async def get(tx, ty):
-            r = await client.get(IMAGERY_URL.format(z=ZOOM, x=tx, y=ty), params={"token": api_key})
+            r = await client.get(IMAGERY_URL.format(z=zoom, x=tx, y=ty), params={"token": api_key})
+            if r.status_code == 404:
+                raise TileMissing(f"No zoom-{zoom} imagery for tile {tx},{ty}")
             if r.status_code != 200 or not r.headers.get("content-type", "").startswith("image/"):
                 raise ImageryUnavailable(f"Imagery tile {tx},{ty} unavailable ({r.status_code}): {r.text[:120]}")
             return tx, ty, Image.open(io.BytesIO(r.content)).convert("RGB")
@@ -182,6 +189,21 @@ def detect_in_image(image: np.ndarray, origin: tuple[int, int], lat: float, lon:
 
 
 async def detect_roof(lat: float, lon: float, api_key: str) -> dict | None:
-    image, origin = await fetch_window(lat, lon, api_key)
+    """Detect at zoom 19; where only zoom 18 exists, upscale it 2x so roofs appear at the
+    scale the model was trained on (sharpness is lower, so outlines are less precise)."""
+    try:
+        image, origin = await fetch_window(lat, lon, api_key)
+        imagery_zoom = ZOOM
+    except TileMissing:
+        try:
+            small, (ox, oy) = await fetch_window(lat, lon, api_key, size=WINDOW // 2, zoom=ZOOM - 1)
+        except TileMissing as exc:
+            raise TileMissing("No high-resolution satellite imagery is available at this location") from exc
+        image = cv2.resize(small, (WINDOW, WINDOW), interpolation=cv2.INTER_CUBIC)
+        origin, imagery_zoom = (ox * 2, oy * 2), ZOOM - 1
+
     # ONNX Runtime releases the GIL, so inference in a thread keeps the server responsive
-    return await asyncio.to_thread(detect_in_image, image, origin, lat, lon)
+    result = await asyncio.to_thread(detect_in_image, image, origin, lat, lon)
+    if result is not None:
+        result["imagery_zoom"] = imagery_zoom
+    return result

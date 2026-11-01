@@ -60,8 +60,10 @@ async def detect_roof(req: PinRequest):
         raise HTTPException(503, "Roof detection needs satellite imagery: set the ARCGIS_API_KEY environment variable")
     try:
         result = await roof.detect_roof(req.lat, req.lon, key)
+    except roof.TileMissing as exc:
+        raise HTTPException(404, f"{exc}. Please trace the roof with the polygon tool instead.") from exc
     except (roof.ImageryUnavailable, httpx.HTTPError) as exc:
-        raise HTTPException(502, f"Satellite imagery unavailable here: {exc}") from exc
+        raise HTTPException(502, "Couldn't load satellite imagery right now. Please try again in a moment.") from exc
     if result is None:
         return {"found": False}
     return {"found": True, **result}
