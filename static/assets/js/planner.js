@@ -545,9 +545,28 @@
 
   function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
 
+  let printing = false;
+
   function setChart(id, config) {
     if (charts[id]) charts[id].destroy();
+    // A chart drawn for printing must be complete at once, not animating up from empty
+    if (printing) config.options = Object.assign({}, config.options, { animation: false });
     charts[id] = new Chart($(id), config);
+  }
+
+  // Snapshot every chart into an image that the print stylesheet shows in place of the canvas
+  function snapshotCharts() {
+    Object.values(charts).forEach((chart) => {
+      const box = chart.canvas.parentNode;
+      let img = box.querySelector(".chart-print");
+      if (!img) {
+        img = document.createElement("img");
+        img.className = "chart-print";
+        img.alt = chart.canvas.getAttribute("aria-label") || "";
+        box.append(img);
+      }
+      img.src = chart.toBase64Image("image/png", 1);
+    });
   }
 
   function insightList(id, items) {
@@ -768,8 +787,10 @@
     if (!lastResult) return;
     themeBeforePrint = document.documentElement.dataset.theme || "";
     document.documentElement.dataset.theme = "light";
+    printing = true;
     drawCharts(lastResult.data, lastResult.input);
-    Object.values(charts).forEach((chart) => chart.resize());
+    printing = false;
+    snapshotCharts();
   });
   window.addEventListener("afterprint", () => {
     if (themeBeforePrint === null) return;

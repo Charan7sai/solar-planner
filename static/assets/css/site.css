@@ -453,6 +453,7 @@ input[aria-invalid="true"] { border-color: var(--bad); }
 .chart-card h3 { font-size: 1.2rem; }
 .chart-card .chart-desc { color: var(--muted); max-width: 80ch; }
 .chart-box { position: relative; height: 400px; margin: 8px 0 16px; }
+.chart-print { display: none; }
 @media (max-width: 600px) { .chart-box { height: 300px; } }
 .insights { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin: 0; padding: 0; list-style: none; }
 .insights li { padding: 12px; background: var(--surface-2); border-radius: var(--radius-sm); font-size: 0.9rem; color: var(--muted); }
@@ -494,7 +495,10 @@ input[aria-invalid="true"] { border-color: var(--bad); }
   .planner-grid { display: block; padding: 0; }
   .print-only { display: block; }
   .card, .stat, .chart-card { box-shadow: none; break-inside: avoid; }
-  .chart-box { height: 300px; }
+  /* A still image of each chart prints reliably; a live canvas can be caught mid animation or resized */
+  .chart-box { height: auto; }
+  .chart-box canvas { display: none !important; }
+  .chart-box .chart-print { display: block; width: 100%; height: auto; }
   a { color: #000; text-decoration: none; }
   .disclaimer-box { border: 1px solid #000; border-left-width: 4px; background: none; }
   .disclaimer-box strong { color: #000; }
