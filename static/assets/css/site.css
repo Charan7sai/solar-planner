@@ -474,6 +474,16 @@ input[aria-invalid="true"] { border-color: var(--bad); }
 .leaflet-control-attribution { font-size: 11px; }
 
 /* ---- Print ---- */
+/* Our own page margins replace the browser's header and footer (date, page title, URL) */
+@page {
+  margin: 14mm 12mm;
+  @top-left { content: "Rooftop Solar Planner"; font: 600 9pt system-ui, sans-serif; color: #444; }
+  @top-center { content: none; }
+  @top-right { content: none; }
+  @bottom-left { content: none; }
+  @bottom-center { content: none; }
+  @bottom-right { content: "Page " counter(page) " of " counter(pages); font: 9pt system-ui, sans-serif; color: #444; }
+}
 @media print {
   /* Must beat both theme selectors, or a dark-mode visitor prints light text on white paper */
   :root, :root[data-theme="dark"], :root[data-theme="light"], :root:not([data-theme="light"]) { --bg: #fff; --surface: #fff; --surface-2: #f4f4f4; --text: #000; --muted: #444; --border: #ccc;

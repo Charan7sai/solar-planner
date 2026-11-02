@@ -759,6 +759,11 @@
 
   // Charts are images, so print them in light-theme colours even when the page is dark
   let themeBeforePrint = null;
+  // Browsers that still print their own header show the page title, and it names the saved PDF
+  const pageTitle = document.title;
+  window.addEventListener("beforeprint", () => { document.title = "Rooftop Solar Planner"; });
+  window.addEventListener("afterprint", () => { document.title = pageTitle; });
+
   window.addEventListener("beforeprint", () => {
     if (!lastResult) return;
     themeBeforePrint = document.documentElement.dataset.theme || "";
