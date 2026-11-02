@@ -27,7 +27,7 @@
   <rect class="data" x="200" y="38" width="150" height="66" rx="10"/>
   <text class="t" x="275" y="67">Satellite imagery</text><text class="s" x="275" y="86">zoom 19, 512 px</text>
   <rect class="ml" x="380" y="38" width="150" height="66" rx="10"/>
-  <text class="t" x="455" y="67">ResNet-34 U-Net</text><text class="s" x="455" y="86">INT8 ONNX on CPU</text>
+  <text class="t" x="455" y="67">ResNet34 UNet</text><text class="s" x="455" y="86">INT8 ONNX on CPU</text>
   <rect class="ml" x="560" y="38" width="150" height="66" rx="10"/>
   <text class="t" x="635" y="67">Watershed split</text><text class="s" x="635" y="86">separates touching roofs</text>
   <rect class="ml" x="740" y="38" width="160" height="66" rx="10"/>

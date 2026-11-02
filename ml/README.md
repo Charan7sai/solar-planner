@@ -21,7 +21,7 @@ zoom 19 (~0.3 m/pixel) from OpenAerialMap with expert-validated OpenStreetMap bu
 | Validation | 7,237 | 3 |
 | Test | 7,236 | 6 (Eswatini, Peru, Japan, Mozambique, Tajikistan, Philippines) |
 
-## CP2 baseline: U-Net from scratch
+## Baseline: U-Net from scratch
 
 | | |
 |---|---|
@@ -71,9 +71,9 @@ Test IoU by country (tuned threshold):
 - **Some labels are noisy.** Some test tiles are blurry or the OSM outlines are offset from the
   imagery, which caps the achievable IoU (see the first rows of the prediction grid).
 
-These results motivated CP3: try an ImageNet-pretrained encoder.
+These results motivated the next step: try an ImageNet-pretrained encoder.
 
-## CP3: pretrained encoder + CPU-ready export
+## Pretrained encoder + CPU-ready export
 
 ### Pretrained ResNet-34 encoder
 
@@ -88,7 +88,7 @@ The final model is the run with the highest validation IoU.
 
 | Run | LR | Selected | Threshold | Val IoU | Test IoU | Test F1 |
 |---|---|---|---|---|---|---|
-| U-Net from scratch (CP2) | 1e-3 | epoch 9 | 0.10 | 0.454 | 0.308 | 0.471 |
+| U-Net from scratch | 1e-3 | epoch 9 | 0.10 | 0.454 | 0.308 | 0.471 |
 | **ResNet-34 U-Net** ✅ | 5e-4 | epoch 3 | 0.20 | **0.501** | **0.321** | **0.486** |
 | ResNet-34 U-Net | 2e-4 | epoch 15 | 0.05 | 0.494 | 0.339 | 0.506 |
 
@@ -134,7 +134,7 @@ quantization** (per-channel weights, calibrated on 256 validation tiles), and be
 ONNX output matches PyTorch to within 3e-5. Quantization makes the model **4× smaller with no loss
 in accuracy**, and a 512 px area (about one city block at zoom 19) is segmented in under 0.3 s.
 
-## CP4: from masks to one roof per click
+## From masks to one roof per click
 
 Pixel IoU rewards good masks, but users get **one outline for the roof they clicked**. With the
 pixel-optimal threshold (0.2), neighbouring roofs and paved areas merge into one blob, so
@@ -161,19 +161,3 @@ through the >0.35 mask, so touching roofs split where confidence dips between th
 
 Results are in [`runs/detection_eval.json`](runs/detection_eval.json).
 
-## Reproduce
-
-```bash
-pip install torch==2.7.1+cu126 torchvision==0.22.1+cu126 --extra-index-url https://download.pytorch.org/whl/cu126
-pip install -r ml/requirements.txt
-python ml/prepare_data.py                          # ~3.7 GB download
-cd ml
-python train.py --run unet_baseline --epochs 15    # add --resume to continue an interrupted run
-python evaluate.py --run unet_baseline
-
-python train.py --arch resnet34_unet --lr 5e-4 --run resnet34_unet --epochs 15
-python evaluate.py --run resnet34_unet
-python export_onnx.py --run resnet34_unet          # needs: pip install onnx onnxruntime onnxscript
-cd ..
-python ml/evaluate_detection.py --buildings 300     # per-building evaluation of the deployed pipeline
-```
