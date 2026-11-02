@@ -26,11 +26,15 @@ Each checkpoint ends in a working, tested app and is pushed to GitHub as its own
 - Instance-level eval on 300 held-out buildings (method chosen on validation): **0.378 mean IoU, 21% median area error**
 - Checked on Esri imagery of six Indian neighbourhoods: good in mixed areas, weak in dense flat-concrete blocks
 
-## ⬜ CP5: Deploy + CI
-- GitHub Actions: run tests on every push
-- Deploy to Render with the ArcGIS key as an environment variable, add live link + demo GIF to README
+## ✅ CP5: Deploy + CI
+- GitHub Actions: tests, then build and smoke-test the Docker image on every push
+- Live on Render with HTTPS, auto-deploy from `main`: https://solar-planner-33mq.onrender.com
+- ArcGIS key stays on the server behind a tile proxy; security headers added
+- Google Analytics after cookie consent; sitemap submitted to Search Console
+- Tested in Chromium and WebKit on desktop and phone sizes; detection takes 4-5.5 s on the free plan
 
 ## ⬜ CP6: Accuracy + product polish
 - Shading/obstruction loss estimate
 - State-wise tariff slabs and net-metering rules
-- Shareable PDF report, usage analytics
+- Shareable PDF report
+- Demo GIF for the README
