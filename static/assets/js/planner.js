@@ -10,6 +10,10 @@
   const NOMINATIM = "https://nominatim.openstreetmap.org/search";
   const track = window.track || function () {};
 
+  // A share link keeps its details after the #, which is never sent to servers. Clear it at once.
+  const sharedParams = location.hash.startsWith("#lat=") ? new URLSearchParams(location.hash.slice(1)) : null;
+  if (sharedParams) history.replaceState(null, "", location.pathname + location.search);
+
   // ---------- Messages ----------
 
   // Messages pop up as notifications (see notify in site.js). The first argument names the
@@ -462,6 +466,26 @@
 
   // ---------- Step 3: estimate ----------
 
+  const SHADE_DIRECTIONS = { S: "south", E: "east", W: "west", N: "north" };
+
+  function shadeInputs(code) { return [$("shade-" + code.toLowerCase() + "-h"), $("shade-" + code.toLowerCase() + "-d")]; }
+
+  // Returns the filled-in obstacles, or null after marking a direction with only one of its two numbers
+  function readObstacles() {
+    const obstacles = [];
+    let complete = true;
+    Object.keys(SHADE_DIRECTIONS).forEach((code) => {
+      const [height, distance] = shadeInputs(code);
+      if (height.value.trim() && distance.value.trim()) {
+        obstacles.push({ direction: code, height_m: Number(height.value), distance_m: Number(distance.value) });
+      } else if (height.value.trim() || distance.value.trim()) {
+        fieldError(height.value.trim() ? distance : height, "Enter both numbers for the " + SHADE_DIRECTIONS[code] + ", or leave both empty.");
+        complete = false;
+      }
+    });
+    return complete ? obstacles : null;
+  }
+
   const FIELD_RULES = {
     area: { label: "roof area", required: true },
     units: { label: "monthly use", required: true },
@@ -470,6 +494,13 @@
     cost: { label: "install cost", required: true },
     kwp: { label: "system size", required: false },
   };
+  Object.keys(SHADE_DIRECTIONS).forEach((code) => {
+    shadeInputs(code).forEach((input) => {
+      FIELD_RULES[input.id] = { label: "height or distance", required: false };
+      // Clear errors while typing: if one vanished on blur, the button would move away from the click
+      input.addEventListener("input", () => shadeInputs(code).forEach((field) => fieldError(field, "")));
+    });
+  });
 
   function validateField(id) {
     const input = $(id);
@@ -506,7 +537,14 @@
     e.preventDefault();
     clearAlert("estimate-alert");
     const invalid = Object.keys(FIELD_RULES).filter((id) => !validateField(id));
+    const obstacles = invalid.length ? [] : readObstacles();
+    if (!obstacles) {
+      $("shade-fields").open = true;
+      showAlert("estimate-alert", "error", "Some details need fixing. ", "Check the shade numbers above.");
+      return;
+    }
     if (invalid.length) {
+      if (invalid[0].startsWith("shade-")) $("shade-fields").open = true;
       $(invalid[0]).focus();
       showAlert("estimate-alert", "error", "Some details need fixing. ", "Check the highlighted fields above.");
       return;
@@ -536,6 +574,7 @@
       cost_per_kw: Number($("cost").value),
     };
     if ($("kwp").value.trim()) body.kwp = Number($("kwp").value);
+    if (obstacles.length) body.obstacles = obstacles;
 
     setBusy(button, true, "Loading 20 years of weather data");
     try {
@@ -565,6 +604,53 @@
   });
 
   $("print-btn").addEventListener("click", () => window.print());
+
+  // ---------- Share link ----------
+
+  // Coordinates are kept to 2 decimals (about 1 km): enough for the weather data, which uses the
+  // same grid, and never enough to find the roof. Outlines are not included.
+  function shareLink(input) {
+    const params = new URLSearchParams({
+      lat: input.lat.toFixed(2), lon: input.lon.toFixed(2), area: input.roof_area_m2, units: input.monthly_units,
+      tariff: input.tariff, export: input.export_rate, cost: input.cost_per_kw,
+    });
+    if (input.kwp) params.set("kwp", input.kwp);
+    if (input.obstacles) params.set("shade", input.obstacles.map((o) => [o.direction, o.height_m, o.distance_m].join(":")).join(","));
+    return location.origin + location.pathname + "#" + params;
+  }
+
+  $("share-btn").addEventListener("click", async () => {
+    if (!lastResult) return;
+    const link = shareLink(lastResult.input);
+    const about = "It shows your area to about 1 km, not your exact roof or outline.";
+    try {
+      await navigator.clipboard.writeText(link);
+      track("share_link");
+      showAlert("share-alert", "success", "Link copied. ", "Anyone who opens it sees this estimate. " + about);
+    } catch (err) {
+      showAlert("share-alert", "info", "Copy this link: ", link + " " + about, null, 0);
+    }
+  });
+
+  // Fill the form from a share link and run the estimate. Values the form would reject are left out.
+  function openSharedEstimate() {
+    const lat = Number(sharedParams.get("lat")), lon = Number(sharedParams.get("lon"));
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+    [["area", "area"], ["units", "units"], ["tariff", "tariff"], ["export", "export"], ["cost", "cost"], ["kwp", "kwp"]].forEach(([key, id]) => {
+      const value = sharedParams.get(key);
+      if (value !== null && Number.isFinite(Number(value))) $(id).value = value;
+    });
+    (sharedParams.get("shade") || "").split(",").forEach((item) => {
+      const [code, height, distance] = item.split(":");
+      if (!SHADE_DIRECTIONS[code] || !Number.isFinite(Number(height)) || !Number.isFinite(Number(distance))) return;
+      const [h, d] = shadeInputs(code);
+      h.value = height;
+      d.value = distance;
+      $("shade-fields").open = true;
+    });
+    map.setView([lat, lon], 15, { animate: false });
+    $("estimate-form").requestSubmit();
+  }
 
   // ---------- Results ----------
 
@@ -665,20 +751,27 @@
     stats.replaceChildren(
       statCard("Recommended system", String(d.kwp), "kW", s.panels + " panels of 550 W, limited by your " + s.limited_by),
       statCard("Cost after subsidy", inr(f.net_cost), "", inr(f.gross_cost) + " minus " + inr(f.subsidy) + " subsidy"),
+      statCard("Monthly bill with solar", inr(f.monthly_bill_after), "", "Now " + inr(f.monthly_bill_before) + ", at your rate", true),
       statCard("Payback period", f.payback_years ? String(f.payback_years) : "25+", "years", "Including upkeep costs", true),
       statCard("Savings over 25 years", inr(f.lifetime_net_savings), "", "After paying for the system", true),
       statCard("Yearly generation", num(g.annual_p50), "units", "Poor year: " + num(g.annual_p90) + " units"),
       statCard("Sunlight here", num(g.specific_yield), "units per kW", "Average " + g.ghi_mean + " kWh/m² of sunlight a day"),
       statCard("CO₂ avoided", String(f.co2_tonnes_per_year), "tonnes a year", "Compared with grid power"),
     );
+    if (d.shade) {
+      const monthly = d.shade.monthly_pct, worst = monthly.indexOf(Math.max(...monthly));
+      stats.append(statCard("Lost to shade", String(d.shade.annual_pct), "% a year", "Worst in " + MONTH_NAMES[worst] + ": " + monthly[worst] + "%. Already taken off these figures"));
+    }
+    $("tariff-note").textContent = "Bills use your flat rate of " + inr(input.tariff) + " per unit. Real bills use slabs, duty and surcharges, so check this against yours.";
 
     // Print summary
     const roofCount = roofs.getLayers().length;
     $("print-summary").innerHTML = "";
     const summary = document.createElement("p");
-    summary.textContent = "Location " + input.lat.toFixed(5) + ", " + input.lon.toFixed(5) +
+    summary.textContent = "Approximate location " + input.lat.toFixed(2) + ", " + input.lon.toFixed(2) +
       ". Roof area " + input.roof_area_m2 + " m²" + (roofCount ? " from " + roofCount + " outlined roof" + (roofCount > 1 ? "s" : "") : "") +
-      ". Monthly use " + num(input.monthly_units) + " units at " + inr(input.tariff) + " per unit, export rate " + inr(input.export_rate) +
+      ". Monthly use " + num(input.monthly_units) + " units at " + inr(input.tariff) + " per unit" +
+      (d.shade ? ", with " + d.shade.annual_pct + "% lost to shade" : "") + ", export rate " + inr(input.export_rate) +
       ", install cost " + inr(input.cost_per_kw) + " per kW." +
       (lastImagery ? " Satellite imagery captured " + formatDate(lastImagery.captured) + "." : "") +
       " Generated " + new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) + ".";
@@ -722,14 +815,14 @@
     const gen = g.monthly_p50;
     const best = gen.indexOf(Math.max(...gen)), worst = gen.indexOf(Math.min(...gen));
     const covered = gen.filter((v) => v >= use).length;
-    const totalGen = gen.reduce((a, b) => a + b, 0), totalUse = use * 12;
+    const totalUse = use * 12;
     const selfCovered = gen.reduce((a, v) => a + Math.min(v, use), 0);
     insightList("gen-insights", [
       [MONTH_NAMES[best], "Highest generation: " + num(gen[best]) + " units"],
       [MONTH_NAMES[worst], "Lowest generation: " + num(gen[worst]) + " units"],
       [covered + " of 12 months", "Solar covers all of your use"],
       [Math.round((selfCovered / totalUse) * 100) + "%", "Of your yearly use supplied directly by solar"],
-      [num(Math.max(totalGen - selfCovered, 0)) + " units", "Exported to the grid in a year"],
+      [num(f.year_end_surplus_units) + " units", "Left at the end of the year, paid at the export rate"],
     ]);
 
     // 2. Cumulative savings
@@ -827,4 +920,7 @@
     themeBeforePrint = null;
     if (lastResult) drawCharts(lastResult.data, lastResult.input);
   });
+
+  if (sharedParams) openSharedEstimate();
+  window.addEventListener("hashchange", () => { if (location.hash.startsWith("#lat=")) location.reload(); });
 })();

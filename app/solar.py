@@ -29,7 +29,7 @@ async def fetch_climate(lat: float, lon: float) -> dict:
         return _cache[key]
 
     params = {
-        "parameters": "ALLSKY_SFC_SW_DWN,T2M",
+        "parameters": "ALLSKY_SFC_SW_DWN,ALLSKY_SFC_SW_DIFF,T2M",
         "community": "RE",
         "latitude": key[0],
         "longitude": key[1],
@@ -42,7 +42,8 @@ async def fetch_climate(lat: float, lon: float) -> dict:
         resp.raise_for_status()
     raw = resp.json()["properties"]["parameter"]
 
-    climate = {"ghi": _by_year(raw["ALLSKY_SFC_SW_DWN"]), "t2m": _by_year(raw["T2M"])}
+    climate = {"ghi": _by_year(raw["ALLSKY_SFC_SW_DWN"]), "diff": _by_year(raw["ALLSKY_SFC_SW_DIFF"]),
+               "t2m": _by_year(raw["T2M"])}
     _cache[key] = climate
     return climate
 
@@ -63,22 +64,22 @@ def performance_ratio(air_temp: float) -> float:
     return BASE_PR * (1 + TEMP_COEFF * max(cell_temp - 25, 0))
 
 
-def monthly_generation(kwp: float, ghi: list[float], t2m: list[float]) -> list[float]:
-    """kWh produced in each month of one year by a kwp-sized system."""
+def monthly_generation(kwp: float, ghi: list[float], t2m: list[float], shade: list[float] | None = None) -> list[float]:
+    """kWh produced in each month of one year by a kwp-sized system, after any fraction lost to shade."""
     return [
-        kwp * g * DAYS_IN_MONTH[m] * performance_ratio(t2m[m])
+        kwp * g * DAYS_IN_MONTH[m] * performance_ratio(t2m[m]) * (1 - shade[m] if shade else 1)
         for m, g in enumerate(ghi)
     ]
 
 
-def simulate(kwp: float, climate: dict) -> dict:
+def simulate(kwp: float, climate: dict, shade: list[float] | None = None) -> dict:
     """Run the system through every historical year and summarise the spread.
 
     P50 is the median year; P90 is the output exceeded in 90% of years (the bankable,
     conservative figure).
     """
     years = sorted(set(climate["ghi"]) & set(climate["t2m"]))
-    per_year = {y: monthly_generation(kwp, climate["ghi"][y], climate["t2m"][y]) for y in years}
+    per_year = {y: monthly_generation(kwp, climate["ghi"][y], climate["t2m"][y], shade) for y in years}
     annual = [sum(per_year[y]) for y in years]
 
     monthly_p50 = [statistics.median(per_year[y][m] for y in years) for m in range(12)]

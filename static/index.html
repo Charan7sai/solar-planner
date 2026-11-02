@@ -15,7 +15,7 @@
   <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
-  <link rel="stylesheet" href="/assets/css/site.css?v=27">
+  <link rel="stylesheet" href="/assets/css/site.css?v=29">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -110,7 +110,7 @@
           <li>System size in kW and the number of 550 W panels, limited by your roof space or by how much power you use.</li>
           <li>Generation in a typical year and in a poor year, from 20 real years of weather at your location.</li>
           <li>Cost before and after central financial assistance under <a href="https://www.pib.gov.in/PressReleasePage.aspx?PRID=2010674" target="_blank" rel="noopener">PM Surya Ghar: Muft Bijli Yojana</a>.</li>
-          <li>Net metering for each month: units you use save your full tariff, and surplus units earn the export rate.</li>
+          <li>Net metering: a month's surplus units offset later months, and what is left at the end of the year earns the export rate.</li>
           <li>Payback period and savings over 25 years, including panel ageing of 0.5% a year, tariff rises of 3% a year and upkeep of 1% of the cost a year.</li>
           <li>Carbon dioxide avoided each year, using the India grid average of 0.71 kg per unit.</li>
         </ul>
@@ -140,7 +140,7 @@
           <ul class="limits">
             <li>It works best where imagery is sharp, mostly in cities. In smaller towns the planner falls back to lower resolution imagery and tells you so.</li>
             <li>Dense blocks of similar grey flat roofs are hard. The model may miss the roof or join it to a neighbour's. Trace these by hand.</li>
-            <li>Shade from trees, water tanks and nearby buildings is not modelled yet.</li>
+            <li>Shade is only counted if you enter nearby buildings or trees, and it treats your roof as a single point. Water tanks and partial shade across the panels are not modelled.</li>
             <li>This is an estimate, not a quote. Get a site survey from an installer before you buy.</li>
           </ul>
         </div>
@@ -172,7 +172,7 @@
           </details>
           <details>
             <summary>Does it store my location or address?</summary>
-            <div><p>No. Address search goes from your browser to the OpenStreetMap Nominatim service. For roof detection, imagery dates and estimates, your coordinates are sent to this site's server, used for that request and not saved. Anonymous usage counts, such as how many estimates were run, are logged without any location. If you accept the cookie notice, Google Analytics counts visits and pages viewed; it never receives your address, coordinates or roof details. You can change your choice with Cookie settings at the bottom of any page.</p></div>
+            <div><p>No. Address search goes from your browser to the OpenStreetMap Nominatim service. For roof detection, imagery dates and estimates, your coordinates are sent to this site's server, used for that request and not saved. Anonymous usage counts, such as how many estimates were run, are logged without any location. If you accept the cookie notice, Google Analytics counts visits and pages viewed; it never receives your address, coordinates or roof details. A share link you copy holds your area to about 1 km, never your exact roof. You can change your choice with Cookie settings at the bottom of any page.</p></div>
           </details>
           <details>
             <summary>How recent is the satellite imagery?</summary>
@@ -245,6 +245,6 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
   </button>
 
-  <script src="/assets/js/site.js?v=27"></script>
+  <script src="/assets/js/site.js?v=29"></script>
 </body>
 </html>

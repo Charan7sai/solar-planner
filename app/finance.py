@@ -46,25 +46,35 @@ def cash_flow(
     tariff_escalation: float = 0.03,
     om_rate: float = 0.01,
 ) -> dict:
-    """Net-metering savings: self-used units save the retail tariff, surplus earns the export rate.
+    """Net-metering savings against a flat monthly consumption profile.
 
-    Netting is done month by month against a flat monthly consumption profile.
+    A month's surplus is banked and offsets later months. Whatever is left at the end of the year
+    earns the export rate. Every unit costs the flat tariff.
     """
     gross_cost = kwp * cost_per_kw
     subsidy = pm_surya_ghar_subsidy(kwp)
     net_cost = gross_cost - subsidy
 
     cumulative = -net_cost
-    yearly, payback = [], None
+    yearly, payback, first_year = [], None, None
     for year in range(1, LIFETIME_YEARS + 1):
         derate = (1 - degradation) ** (year - 1)
         escal = (1 + tariff_escalation) ** (year - 1)
-        saved = exported = 0.0
+        banked = bill_after = 0.0
         for gen in monthly_gen:
-            g = gen * derate
-            saved += min(g, monthly_units)
-            exported += max(g - monthly_units, 0)
-        savings = saved * tariff * escal + exported * export_rate - gross_cost * om_rate
+            net = monthly_units - gen * derate
+            if net < 0:
+                banked -= net
+                net = 0.0
+            else:
+                offset = min(banked, net)
+                banked -= offset
+                net -= offset
+            bill_after += net * tariff
+        bill_before = monthly_units * tariff * 12
+        if first_year is None:
+            first_year = {"bill_before": bill_before / 12, "bill_after": bill_after / 12, "surplus": banked}
+        savings = (bill_before - bill_after) * escal + banked * export_rate - gross_cost * om_rate
         prev = cumulative
         cumulative += savings
         if payback is None and cumulative >= 0:
@@ -77,6 +87,9 @@ def cash_flow(
         "subsidy": round(subsidy),
         "net_cost": round(net_cost),
         "first_year_savings": yearly[0]["savings"],
+        "monthly_bill_before": round(first_year["bill_before"]),
+        "monthly_bill_after": round(first_year["bill_after"]),
+        "year_end_surplus_units": round(first_year["surplus"]),
         "payback_years": round(payback, 1) if payback is not None else None,
         "lifetime_net_savings": yearly[-1]["cumulative"],
         "co2_tonnes_per_year": round(first_year_gen * GRID_CO2_KG_PER_KWH / 1000, 2),

@@ -16,7 +16,7 @@
   <script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
-  <link rel="stylesheet" href="/assets/css/site.css?v=27">
+  <link rel="stylesheet" href="/assets/css/site.css?v=29">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -149,6 +149,70 @@
                 <p class="field-error" id="kwp-error" hidden></p>
               </div>
             </div>
+            <details class="more-fields" id="shade-fields">
+              <summary>Add shade from nearby buildings or trees</summary>
+              <p class="hint">Fill in a direction only if something taller than your roof stands there. Shade from the south matters most in India.</p>
+                <fieldset class="shade-row">
+                  <legend>South</legend>
+                  <div class="field-row">
+                    <div class="field">
+                      <label for="shade-s-h">Height above your roof (m)</label>
+                      <input id="shade-s-h" type="number" min="0.5" max="200" step="0.5" aria-describedby="shade-s-h-error">
+                      <p class="field-error" id="shade-s-h-error" hidden></p>
+                    </div>
+                    <div class="field">
+                      <label for="shade-s-d">Distance from your roof (m)</label>
+                      <input id="shade-s-d" type="number" min="0.5" max="500" step="0.5" aria-describedby="shade-s-d-error">
+                      <p class="field-error" id="shade-s-d-error" hidden></p>
+                    </div>
+                  </div>
+                </fieldset>
+                <fieldset class="shade-row">
+                  <legend>East</legend>
+                  <div class="field-row">
+                    <div class="field">
+                      <label for="shade-e-h">Height above your roof (m)</label>
+                      <input id="shade-e-h" type="number" min="0.5" max="200" step="0.5" aria-describedby="shade-e-h-error">
+                      <p class="field-error" id="shade-e-h-error" hidden></p>
+                    </div>
+                    <div class="field">
+                      <label for="shade-e-d">Distance from your roof (m)</label>
+                      <input id="shade-e-d" type="number" min="0.5" max="500" step="0.5" aria-describedby="shade-e-d-error">
+                      <p class="field-error" id="shade-e-d-error" hidden></p>
+                    </div>
+                  </div>
+                </fieldset>
+                <fieldset class="shade-row">
+                  <legend>West</legend>
+                  <div class="field-row">
+                    <div class="field">
+                      <label for="shade-w-h">Height above your roof (m)</label>
+                      <input id="shade-w-h" type="number" min="0.5" max="200" step="0.5" aria-describedby="shade-w-h-error">
+                      <p class="field-error" id="shade-w-h-error" hidden></p>
+                    </div>
+                    <div class="field">
+                      <label for="shade-w-d">Distance from your roof (m)</label>
+                      <input id="shade-w-d" type="number" min="0.5" max="500" step="0.5" aria-describedby="shade-w-d-error">
+                      <p class="field-error" id="shade-w-d-error" hidden></p>
+                    </div>
+                  </div>
+                </fieldset>
+                <fieldset class="shade-row">
+                  <legend>North</legend>
+                  <div class="field-row">
+                    <div class="field">
+                      <label for="shade-n-h">Height above your roof (m)</label>
+                      <input id="shade-n-h" type="number" min="0.5" max="200" step="0.5" aria-describedby="shade-n-h-error">
+                      <p class="field-error" id="shade-n-h-error" hidden></p>
+                    </div>
+                    <div class="field">
+                      <label for="shade-n-d">Distance from your roof (m)</label>
+                      <input id="shade-n-d" type="number" min="0.5" max="500" step="0.5" aria-describedby="shade-n-d-error">
+                      <p class="field-error" id="shade-n-d-error" hidden></p>
+                    </div>
+                  </div>
+                </fieldset>
+            </details>
             <button type="submit" class="btn btn-primary" id="estimate-btn" style="width:100%;">Calculate estimate</button>
           </form>
         </section>
@@ -157,7 +221,10 @@
       <section class="results" id="results" aria-labelledby="results-title" hidden>
         <div class="results-head">
           <h2 id="results-title" tabindex="-1">Your estimate</h2>
-          <button type="button" class="btn btn-secondary btn-small no-print" id="print-btn">Print or save as PDF</button>
+          <div class="results-actions no-print">
+            <button type="button" class="btn btn-secondary btn-small" id="share-btn">Copy share link</button>
+            <button type="button" class="btn btn-secondary btn-small" id="print-btn">Print or save as PDF</button>
+          </div>
         </div>
         <p class="disclaimer-box" role="note"><strong>DISCLAIMER:</strong> This is an estimate, not a quote. Get a site survey from an installer before you buy.</p>
         <div class="print-only card" id="print-summary"></div>
@@ -165,7 +232,7 @@
 
         <article class="card chart-card">
           <h3>Monthly generation compared with your use</h3>
-          <p class="chart-desc">Bars show how many units the recommended system would generate each month in a typical year (the middle value of 20 years of weather). The dashed line is your monthly use. Where a bar rises above the line, the surplus is exported to the grid and earns the export rate. Generation dips in the monsoon months because of cloud cover.</p>
+          <p class="chart-desc">Bars show how many units the recommended system would generate each month in a typical year (the middle value of 20 years of weather). The dashed line is your monthly use. Where a bar rises above the line, the surplus is banked for later months, and whatever is left at the end of the year earns the export rate. Generation dips in the monsoon months because of cloud cover.</p>
           <div class="chart-box"><canvas id="gen-chart" role="img" aria-label="Bar chart of monthly solar generation compared with monthly electricity use"></canvas></div>
           <ul class="insights" id="gen-insights"></ul>
         </article>
@@ -184,7 +251,8 @@
           <ul class="insights" id="year-insights"></ul>
         </article>
 
-        <p class="disclaimer">Subsidy follows central financial assistance for residential systems under <a href="https://www.pib.gov.in/PressReleasePage.aspx?PRID=2010674" target="_blank" rel="noopener">PM Surya Ghar: Muft Bijli Yojana</a>. Extra subsidies from states are not included. Actual output depends on shade, panel tilt and installation quality.</p>
+        <p class="disclaimer" id="tariff-note"></p>
+        <p class="disclaimer">Subsidy follows central financial assistance for residential systems under <a href="https://www.pib.gov.in/PressReleasePage.aspx?PRID=2010674" target="_blank" rel="noopener">PM Surya Ghar: Muft Bijli Yojana</a>. Extra subsidies from states are not included. Your net metering rules may differ, because surplus handling varies by state and DISCOM. Actual output depends on panel tilt, installation quality and shade the estimate cannot see.</p>
       </section>
     </div>
   </main>
@@ -238,7 +306,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/leaflet.tilelayer.fallback@1.0.4/dist/leaflet.tilelayer.fallback.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-  <script src="/assets/js/site.js?v=27"></script>
-  <script src="/assets/js/planner.js?v=27"></script>
+  <script src="/assets/js/site.js?v=29"></script>
+  <script src="/assets/js/planner.js?v=29"></script>
 </body>
 </html>

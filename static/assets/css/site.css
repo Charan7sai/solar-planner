@@ -408,6 +408,9 @@ input[aria-invalid="true"] { border-color: var(--bad); }
 .field-error { margin: 0; color: var(--bad); font-size: 0.85rem; font-weight: 600; }
 
 .more-fields { margin: 4px 0 14px; }
+.more-fields > .hint { margin: 0 0 10px; color: var(--muted); font-size: 0.85rem; }
+.shade-row { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px 0; margin: 0 0 10px; min-width: 0; }
+.shade-row legend { font-weight: 600; font-size: 0.92rem; padding: 0 6px; }
 .more-fields summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 0.92rem; padding: 6px 0; }
 .more-fields summary:hover { color: var(--accent-hover); }
 .more-fields[open] summary { margin-bottom: 10px; }
@@ -448,6 +451,7 @@ input[aria-invalid="true"] { border-color: var(--bad); }
 .results { padding: 8px 0 48px; }
 .results-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .results-head h2 { margin: 0; }
+.results-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .stat-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); margin-bottom: 20px; }
 .stat { padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
 .stat .label { color: var(--muted); font-size: 0.85rem; }

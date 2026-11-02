@@ -125,7 +125,8 @@
       analytics_storage: "granted", ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied",
     });
     window.gtag("js", new Date());
-    window.gtag("config", id);
+    // The address without its #part, so a share link's area never reaches Google
+    window.gtag("config", id, { page_location: location.origin + location.pathname + location.search });
     const script = document.createElement("script");
     script.async = true;
     script.src = "https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(id);

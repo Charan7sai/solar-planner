@@ -13,7 +13,7 @@ from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
-from . import finance, imagery, roof, solar
+from . import finance, imagery, roof, shading, solar
 
 
 def _load_dotenv(path: Path = Path(__file__).parent.parent / ".env") -> None:
@@ -60,6 +60,12 @@ async def security_headers(request: Request, call_next):
     return response
 
 
+class Obstacle(BaseModel):
+    direction: Literal["N", "E", "S", "W"]
+    height_m: float = Field(gt=0, le=200, description="Height above your roof")
+    distance_m: float = Field(gt=0, le=500)
+
+
 class EstimateRequest(BaseModel):
     lat: float = Field(ge=-60, le=60)
     lon: float = Field(ge=-180, le=180)
@@ -69,6 +75,7 @@ class EstimateRequest(BaseModel):
     export_rate: float = Field(3.0, ge=0, le=30, description="Rs/kWh credited for surplus units")
     cost_per_kw: float = Field(60_000, gt=0, le=200_000)
     kwp: float | None = Field(None, gt=0, le=500, description="Override the recommended size")
+    obstacles: list[Obstacle] = Field(default_factory=list, max_length=4)
 
 
 class PinRequest(BaseModel):
@@ -86,7 +93,7 @@ UTM_KEYS = {"utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content
 class TrackEvent(BaseModel):
     """Anonymous usage event. Never contains coordinates, addresses or other personal data."""
     event: Literal["page_view", "search", "location_used", "roof_detected", "roof_not_found",
-                   "roof_detect_error", "estimate"]
+                   "roof_detect_error", "estimate", "share_link"]
     path: str = Field("", max_length=200)
     referrer: str = Field("", max_length=200)
     utm: dict[str, str] = Field(default_factory=dict)
@@ -234,11 +241,14 @@ async def estimate(req: EstimateRequest):
         raise HTTPException(422, "No solar data available for this location")
 
     # Size from a 1 kWp reference run, then simulate the chosen size
-    reference = solar.simulate(1.0, climate)
+    shade = None
+    if req.obstacles:
+        shade = shading.monthly_loss(req.lat, [o.model_dump() for o in req.obstacles], shading.diffuse_fractions(climate))
+    reference = solar.simulate(1.0, climate, shade)
     sizing = finance.recommend_size(req.roof_area_m2, req.monthly_units, reference["specific_yield"])
     kwp = req.kwp or sizing["recommended_kwp"]
 
-    generation = solar.simulate(kwp, climate)
+    generation = solar.simulate(kwp, climate, shade)
     money = finance.cash_flow(
         kwp,
         generation["monthly_p50"],
@@ -247,7 +257,12 @@ async def estimate(req: EstimateRequest):
         req.export_rate,
         req.cost_per_kw,
     )
-    return {"kwp": kwp, "sizing": sizing, "generation": generation, "finance": money}
+    shade_loss = None
+    if shade:
+        unshaded = sum(solar.simulate(kwp, climate)["monthly_p50"])
+        shade_loss = {"annual_pct": round((1 - sum(generation["monthly_p50"]) / unshaded) * 100, 1),
+                      "monthly_pct": [round(s * 100, 1) for s in shade]}
+    return {"kwp": kwp, "sizing": sizing, "generation": generation, "finance": money, "shade": shade_loss}
 
 
 app.mount("/", StaticFiles(directory=Path(__file__).parent.parent / "static", html=True), name="static")
