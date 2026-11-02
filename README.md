@@ -4,7 +4,7 @@
 
 **Click your roof on a satellite map. A deep learning model outlines it, and 20 years of NASA weather data tell you whether solar is worth it.**
 
-[![Live site](https://img.shields.io/badge/Live_site-Open_the_planner-c2410c?style=for-the-badge)](https://solar-planner-33mq.onrender.com/planner/)
+[![Live site](https://img.shields.io/badge/Live_site-Open_the_planner-c2410c?style=for-the-badge)](https://solar-planner-33mq.onrender.com)
 [![CI](https://img.shields.io/github/actions/workflow/status/Charan7sai/solar-planner/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/Charan7sai/solar-planner/actions/workflows/ci.yml)
 
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
