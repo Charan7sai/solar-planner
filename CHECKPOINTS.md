@@ -34,7 +34,9 @@ Each checkpoint ends in a working, tested app and is pushed to GitHub as its own
 - Tested in Chromium and WebKit on desktop and phone sizes; detection takes 4-5.5 s on the free plan
 - Demo GIF in the README
 
-## ⬜ CP6: Accuracy + product polish
-- Shading/obstruction loss estimate
-- State-wise tariff slabs and net-metering rules
-- Shareable PDF report
+## ✅ CP6: Accuracy + product polish
+- Shading estimate from the height and distance of obstacles a visitor enters
+- Net metering with a month's surplus banked and the year-end balance paid at the export rate
+- Monthly bill before and after solar, using the flat rate from the visitor's bill
+- Share link that keeps the location to about 1 km and leaves out the roof outline
+- State tariff slabs left out: official schedules could not all be verified, so only the PM Surya Ghar subsidy, the same across India, is built in

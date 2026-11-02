@@ -27,7 +27,10 @@ NASA POWER (2004–2023 monthly irradiance + temperature) ──┤
 
 - **Sizing:** 10 m² of shadow-free roof per kWp, 75% of the roof usable, capped at what your consumption needs.
 - **Generation:** a temperature-derated performance ratio (−0.4%/°C above 25 °C cell temperature). The system is simulated against every historical year, so you get both a typical (P50) and a bad-year (P90) figure, not a single guess.
-- **Finance:** month-by-month net metering (self-used units save your tariff, surplus earns the export rate), 0.5%/yr panel degradation, 3%/yr tariff escalation, 1%/yr maintenance.
+- **Finance:** net metering with a month's surplus banked for later months and the year-end balance paid at the export rate, 0.5%/yr panel degradation, 3%/yr tariff escalation, 1%/yr maintenance.
+- **Subsidy:** central financial assistance under PM Surya Ghar, the same across India: Rs 30,000/kW for the first 2 kW and Rs 18,000 for the third, capped at Rs 78,000. State subsidies are not included.
+- **Tariff:** one flat rate per unit from the visitor's bill. Slabs, duty and surcharges differ by state and are not modelled.
+- **Shade (optional):** enter the height and distance of anything taller than your roof to the south, east, west or north. The sun's path is stepped every 15 minutes through a typical day of each month, and NASA's diffuse sunlight share sets how much light still gets through. It treats the roof as one point, so partial shade across the panels is not modelled.
 
 ## Roof detection
 
@@ -91,6 +94,7 @@ Free services sleep after 15 minutes without visitors, and the next visit takes 
 | anything else | Custom 404 page |
 
 Light and dark themes (remembered per browser), a print stylesheet for saving the estimate as a PDF,
+a share link that keeps the location to about 1 km and leaves out the roof outline,
 and Google Analytics only for visitors who accept the cookie notice.
 
 ### Campaign tracking (UTM)
@@ -115,7 +119,8 @@ which writes one JSON line per event to the server log. Events never include coo
 
 ```json
 { "lat": 17.385, "lon": 78.486, "roof_area_m2": 60, "monthly_units": 300,
-  "tariff": 7, "export_rate": 3, "cost_per_kw": 60000 }
+  "tariff": 7, "export_rate": 3, "cost_per_kw": 60000,
+  "obstacles": [{ "direction": "S", "height_m": 8, "distance_m": 6 }] }
 ```
 
 ## Roadmap
@@ -124,7 +129,9 @@ which writes one JSON line per event to the server log. Events never include coo
 - [x] **Pretrained model + CPU export:** ResNet-34 U-Net, 0.321 test IoU, INT8 ONNX (24.7 MB, <0.3 s per area)
 - [x] **Drop-a-pin roof detection:** click a roof to get an editable outline and area (0.378 instance IoU, 21% median area error)
 - [ ] **More diverse training data** for dense flat-roof neighbourhoods (KPHB, Peru-style)
-- [ ] **Shading model:** estimate obstruction losses from building heights
+- [x] **Shading estimate:** losses from the height and distance of nearby buildings and trees you enter
+- [ ] **Automatic shading:** read building heights from data instead of asking
 - [ ] **Learned yield correction:** train on real inverter data to correct the physics model
-- [ ] State-wise tariff slabs and DISCOM net-metering rules
-- [ ] Shareable PDF report
+- [x] Banked net metering with the PM Surya Ghar subsidy
+- [ ] State tariff slabs and each DISCOM's own net metering rules
+- [x] Shareable estimate link and PDF
