@@ -40,20 +40,7 @@ This app measures the roof from satellite imagery, simulates a system against th
 
 ## How it works
 
-```mermaid
-flowchart LR
-    A["Click on a roof"] --> B["Satellite imagery<br/>zoom 19, 512 px"]
-    B --> C["ResNet-34 U-Net<br/>INT8 ONNX on CPU"]
-    C --> D["Watershed split of<br/>touching roofs"]
-    D --> E["Editable roof<br/>outline and area"]
-    E --> H["System sizing"]
-    F["NASA POWER<br/>2004 to 2023"] --> G["PV simulation<br/>for every weather year"]
-    S["Optional shade<br/>from nearby obstacles"] --> G
-    G --> H
-    B2["Your bill and<br/>PM Surya Ghar subsidy"] --> I["25 year cash flow<br/>with net metering"]
-    H --> I
-    I --> J["Payback, savings,<br/>charts, PDF, share link"]
-```
+<img src="docs/architecture.svg" alt="How a click on a roof becomes a payback estimate: roof detection, solar simulation and a 25 year cash flow" width="100%">
 
 ## Engineering highlights
 
