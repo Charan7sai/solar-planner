@@ -120,7 +120,7 @@ Test IoU by country:
 
 ### ONNX export + INT8 quantization
 
-Free hosting (Hugging Face Spaces) is CPU-only with 2 vCPUs, so `export_onnx.py` exports the
+Free hosting is CPU-only, so `export_onnx.py` exports the
 selected model to ONNX (dynamic height/width), checks it against PyTorch, applies **static INT8
 quantization** (per-channel weights, calibrated on 256 validation tiles), and benchmarks it on
 1,000 *other* validation tiles.
