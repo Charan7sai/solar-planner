@@ -28,7 +28,7 @@ Each checkpoint ends in a working, tested app and is pushed to GitHub as its own
 
 ## ⬜ CP5: Deploy + CI
 - GitHub Actions: run tests on every push
-- Deploy to Hugging Face Spaces with the ArcGIS key as a secret, add live link + demo GIF to README
+- Deploy to Render with the ArcGIS key as an environment variable, add live link + demo GIF to README
 
 ## ⬜ CP6: Accuracy + product polish
 - Shading/obstruction loss estimate

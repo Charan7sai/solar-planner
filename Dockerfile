@@ -1,4 +1,4 @@
-# Runs on Hugging Face Spaces (Docker SDK), Render or any container host.
+# Runs on Render or any container host. The host sets PORT.
 FROM python:3.11-slim
 
 RUN useradd -m -u 1000 user
@@ -12,4 +12,5 @@ COPY --chown=user . .
 
 ENV PORT=7860
 EXPOSE 7860
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT}
+# Trust the platform's HTTPS proxy so request URLs keep https
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT} --proxy-headers --forwarded-allow-ips="*"

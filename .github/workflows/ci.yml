@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest
+
+      - name: Run tests
+        run: pytest -q
+
+  docker:
+    # The same image Render builds; catches missing system libraries early
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t solar-planner .
+
+      - name: Smoke-test the container
+        run: |
+          docker run -d -p 7860:7860 --name app solar-planner
+          for i in $(seq 1 30); do
+            curl -sf localhost:7860/api/health && break
+            sleep 1
+          done
+          curl -sf localhost:7860/api/health
+          curl -sf localhost:7860/ | grep -q "Rooftop Solar Planner"
+          docker logs app

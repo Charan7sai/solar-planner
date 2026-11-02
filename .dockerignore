@@ -1,0 +1,11 @@
+# Secrets and local environments
+.env
+.venv/
+.claude/
+.git/
+.github/
+# Training data, experiments and tests are not needed to serve the app
+ml/
+tests/
+**/__pycache__/
+.pytest_cache/
