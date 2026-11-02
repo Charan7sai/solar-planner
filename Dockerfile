@@ -12,5 +12,5 @@ COPY --chown=user . .
 
 ENV PORT=7860
 EXPOSE 7860
-# Trust the platform's HTTPS proxy so request URLs keep https
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT} --proxy-headers --forwarded-allow-ips="*"
+# Pip installs into ~/.local for this user, so uvicorn is not on PATH. Trust the platform's HTTPS proxy so request URLs keep https
+CMD python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT} --proxy-headers --forwarded-allow-ips="*"
