@@ -4,6 +4,9 @@
 
 Should *my* house go solar? **Click your roof on the satellite map and a deep-learning model outlines it**, then enter your electricity bill to get a system size, cost after the **PM Surya Ghar** subsidy, payback period and 25-year savings. Generation comes from **20 years of NASA POWER satellite data** for your exact coordinates.
 
+![Finding a roof, outlining it and getting an estimate](docs/demo.gif)
+*Imagery © Esri, Maxar, Earthstar Geographics.*
+
 ## How it works
 
 ```

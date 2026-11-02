@@ -7,5 +7,6 @@
 # Training data, experiments and tests are not needed to serve the app
 ml/
 tests/
+docs/
 **/__pycache__/
 .pytest_cache/

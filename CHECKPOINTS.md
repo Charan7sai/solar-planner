@@ -32,9 +32,9 @@ Each checkpoint ends in a working, tested app and is pushed to GitHub as its own
 - ArcGIS key stays on the server behind a tile proxy; security headers added
 - Google Analytics after cookie consent; sitemap submitted to Search Console
 - Tested in Chromium and WebKit on desktop and phone sizes; detection takes 4-5.5 s on the free plan
+- Demo GIF in the README
 
 ## ⬜ CP6: Accuracy + product polish
 - Shading/obstruction loss estimate
 - State-wise tariff slabs and net-metering rules
 - Shareable PDF report
-- Demo GIF for the README
