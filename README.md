@@ -1,5 +1,6 @@
 # Rooftop Solar Planner
-n**Live site: [solar-planner-33mq.onrender.com](https://solar-planner-33mq.onrender.com)** (free hosting: the first visit after a quiet spell takes about a minute to wake up).
+
+**Live site: [solar-planner-33mq.onrender.com](https://solar-planner-33mq.onrender.com)** (free hosting: the first visit after a quiet spell takes about a minute to wake up).
 
 Should *my* house go solar? **Click your roof on the satellite map and a deep-learning model outlines it**, then enter your electricity bill to get a system size, cost after the **PM Surya Ghar** subsidy, payback period and 25-year savings. Generation comes from **20 years of NASA POWER satellite data** for your exact coordinates.
 
