@@ -439,12 +439,16 @@
       }
 
       const ring = data.polygon.coordinates[0].slice(0, -1).map(([lon, lat]) => [lat, lon]);
-      roofs.addLayer(L.polygon(ring, shapeStyle));
+      const outline = L.polygon(ring, shapeStyle);
+      roofs.addLayer(outline);
       updateArea();
+      // Measure the outline itself, so the message always agrees with the area box
+      const outlineArea = L.GeometryUtil.geodesicArea(outline.getLatLngs()[0]).toFixed(1);
+      const total = $("area").value;
       track("roof_detected", { low_res: data.imagery_zoom < 19 });
       const lowRes = data.imagery_zoom < 19;
       showAlert("map-alert", lowRes ? "warning" : "success",
-        "Roof outlined: " + data.area_m2 + " m². ",
+        "Roof outlined: " + outlineArea + " m²" + (total !== outlineArea ? " (" + total + " m² in total)" : "") + ". ",
         (lowRes ? "Only lower resolution imagery exists here, so check the outline carefully. " : "") +
         "If it is off, use the edit button on the map to drag the corners. Click another roof to add it, or continue to step 3.",
         null, lowRes ? 0 : 8000);
