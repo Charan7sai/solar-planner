@@ -235,8 +235,8 @@
     if (e.target.getAttribute("aria-invalid") === "true" && PINCODE.test(e.target.value)) fieldError(e.target, "");
   });
 
-  $("search-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
+  // Finds the typed pincode (and street details) on the map. Returns true when a place was found.
+  async function runSearch() {
     const fields = {
       pincode: $("pincode").value.trim(),
       house: $("house").value.trim(),
@@ -247,7 +247,7 @@
     if (!PINCODE.test(fields.pincode)) {
       fieldError($("pincode"), fields.pincode ? "A pincode has 6 digits and does not start with 0." : "Enter your 6 digit pincode.");
       $("pincode").focus();
-      return;
+      return false;
     }
     fieldError($("pincode"), "");
     clearAlert("search-alert");
@@ -266,7 +266,7 @@
       if (!found) {
         showAlert("search-alert", "error", "We couldn't find that pincode. ",
           "Check the digits, or add your area and city under \"Add street details\". You can also use your current location or move the map yourself.");
-        return;
+        return false;
       }
       flyToResult(found.results[0], found.precise);
       renderMatches(found.results, found.precise);
@@ -277,14 +277,21 @@
           ? "Address data can be off by a few buildings, so look for your roof nearby, then press Detect roof and click it."
           : (hadStreet ? "We couldn't match the street, so this shows the wider area. " : "") +
             "Zoom in and move the map to your building, then press Detect roof and click your roof.");
+      return true;
     } catch (err) {
       showAlert("search-alert", "error", "Search is not responding. ",
         err.message === "rate"
           ? "Too many searches in a short time. Wait a few seconds and try again."
           : "Check your internet connection and try again, or use your current location.");
+      return false;
     } finally {
       setBusy(button, false);
     }
+  }
+
+  $("search-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    runSearch();
   });
 
   // ---------- Step 1: current location ----------
@@ -491,7 +498,16 @@
       showAlert("estimate-alert", "error", "Some details need fixing. ", "Check the highlighted fields above.");
       return;
     }
-    const where = estimateLocation();
+    const button = $("estimate-btn");
+    let where = estimateLocation();
+    // A pincode typed but never searched (or kept by the browser after a reload) is enough to place the estimate
+    if (!where && PINCODE.test($("pincode").value.trim())) {
+      setBusy(button, true, "Finding your pincode");
+      const found = await runSearch();
+      setBusy(button, false);
+      if (!found) return;
+      where = estimateLocation();
+    }
     if (!where) {
       showAlert("estimate-alert", "error", "We need to know where the roof is. ",
         "Search for your pincode or use your location in step 1, so the estimate uses the weather at your roof.");
@@ -508,7 +524,6 @@
     };
     if ($("kwp").value.trim()) body.kwp = Number($("kwp").value);
 
-    const button = $("estimate-btn");
     setBusy(button, true, "Loading 20 years of weather data");
     try {
       const res = await fetch("/api/estimate", {
