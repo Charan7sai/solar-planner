@@ -435,6 +435,7 @@ input[aria-invalid="true"] { border-color: var(--bad); }
 }
 .map-loading .spinner { width: 32px; height: 32px; border-width: 3px; color: var(--accent); }
 .map-meta { margin: 10px 0 0; min-height: 1.4em; color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.map-meta.old { color: var(--warn); font-weight: 500; }
 .map-help { margin: 6px 0 0; color: var(--muted); font-size: 0.9rem; }
 
 .results { padding: 8px 0 48px; }

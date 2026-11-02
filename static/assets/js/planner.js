@@ -111,6 +111,7 @@
   let imageryTimer = null;
   let imageryRequest = 0;
   let lastImagery = null;
+  const OLD_IMAGERY_MS = 548 * 24 * 3600 * 1000;
 
   function formatDate(iso) {
     return new Date(iso + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
@@ -129,9 +130,13 @@
         const d = await res.json();
         if (request !== imageryRequest) return;  // the map moved again meanwhile
         lastImagery = d.found ? d : null;
+        // Imagery older than about 18 months often misses buildings finished since then
+        const old = d.found && Date.now() - new Date(d.captured + "T00:00:00") > OLD_IMAGERY_MS;
+        line.classList.toggle("old", Boolean(old));
         line.textContent = d.found
           ? "Satellite imagery here was captured on " + formatDate(d.captured) +
-            (d.resolution_m ? ", with about " + Math.round(d.resolution_m * 100) + " cm detail." : ".")
+            (d.resolution_m ? ", with about " + Math.round(d.resolution_m * 100) + " cm detail." : ".") +
+            (old ? " Buildings finished after that will not appear. If yours is missing, type its roof area in step 3." : "")
           : "The capture date of this imagery is not available.";
       } catch (e) {
         if (request === imageryRequest) line.textContent = "";
