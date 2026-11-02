@@ -1,11 +1,3 @@
----
-title: Rooftop Solar Planner
-colorFrom: yellow
-colorTo: green
-sdk: docker
-app_port: 7860
----
-
 # Rooftop Solar Planner
 
 Should *my* house go solar? **Click your roof on the satellite map and a deep-learning model outlines it**, then enter your electricity bill to get a system size, cost after the **PM Surya Ghar** subsidy, payback period and 25-year savings. Generation comes from **20 years of NASA POWER satellite data** for your exact coordinates.
@@ -58,20 +50,32 @@ privileges only). Without a key the app falls back to OpenStreetMap and manual t
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env          # then paste your key after ARCGIS_API_KEY=
+echo "ARCGIS_API_KEY=<your key>" > .env   # .env is git ignored
 uvicorn app.main:app --reload
 # open http://localhost:8000
 ```
+
+The key stays on the server: map tiles reach the browser through `/api/tiles`, which adds the key
+and only serves this site's own pages.
+
+| Setting | Needed for |
+|---|---|
+| `ARCGIS_API_KEY` | Satellite map, roof detection and imagery dates |
+| `GA_MEASUREMENT_ID` | Google Analytics (`G-...`), loaded only after a visitor accepts the cookie notice |
+| `GOOGLE_SITE_VERIFICATION` | Search Console's HTML file check, e.g. `google1234abcd.html` |
+| `SITE_URL` | Optional public address for the sitemap, e.g. `https://example.onrender.com` |
 
 ```bash
 pip install pytest && python -m pytest
 ```
 
-## Deploy free on Hugging Face Spaces
+## Deploy free on Render
 
-1. Create a new Space, choose **Docker**, then **Blank**.
-2. Push this folder to the Space's git repo. The YAML header above configures it.
-3. The app is live at `https://<user>-<space>.hf.space`.
+1. Sign up at [render.com](https://render.com) with GitHub and create a **Web Service** from this repo. Render finds the `Dockerfile` by itself.
+2. Choose the **Free** instance type and add `ARCGIS_API_KEY` and any other settings from the table above under **Environment**.
+3. The app is live with HTTPS at `https://<name>.onrender.com`, and each push to `main` deploys again.
+
+Free services sleep after 15 minutes without visitors, and the next visit takes about a minute to wake them.
 
 ## Pages
 
@@ -82,7 +86,7 @@ pip install pytest && python -m pytest
 | anything else | Custom 404 page |
 
 Light and dark themes (remembered per browser), a print stylesheet for saving the estimate as a PDF,
-and no third-party analytics.
+and Google Analytics only for visitors who accept the cookie notice.
 
 ### Campaign tracking (UTM)
 
