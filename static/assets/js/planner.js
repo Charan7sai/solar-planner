@@ -63,23 +63,22 @@
   });
   map.addControl(drawControl);
 
-  let imageryKey = null;
+  let hasImagery = false;
   let locationMarker = null;
 
   (async function addBaseLayers() {
     try {
-      const res = await fetch("/api/config");
-      if (res.ok) imageryKey = (await res.json()).arcgis_api_key;
-    } catch (e) { imageryKey = null; }
+      hasImagery = Boolean((await window.siteConfig()).imagery);
+    } catch (e) { hasImagery = false; }
 
-    if (imageryKey) {
-      const base = "https://ibasemaps-api.arcgis.com/arcgis/rest/services";
-      // Outside big cities Esri often lacks zoom-19 tiles; the fallback layer upscales the nearest lower zoom
-      L.tileLayer.fallback(base + "/World_Imagery/MapServer/tile/{z}/{y}/{x}?token=" + imageryKey, {
+    if (hasImagery) {
+      // Tiles come through this site's server, which adds the ArcGIS key, so the key never reaches the browser.
+      // Outside big cities Esri often lacks zoom-19 tiles; the fallback layer upscales the nearest lower zoom.
+      L.tileLayer.fallback("/api/tiles/imagery/{z}/{y}/{x}", {
         maxZoom: 20, maxNativeZoom: 19,
         attribution: "Powered by Esri | Imagery © Esri, Maxar, Earthstar Geographics",
       }).addTo(map);
-      L.tileLayer(base + "/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}?token=" + imageryKey, {
+      L.tileLayer("/api/tiles/labels/{z}/{y}/{x}", {
         maxZoom: 20, maxNativeZoom: 19,
       }).addTo(map);
       updateImageryDate();
@@ -120,7 +119,7 @@
   function updateImageryDate() {
     const line = $("imagery-date");
     clearTimeout(imageryTimer);
-    if (!imageryKey || map.getZoom() < 14) { line.textContent = ""; lastImagery = null; return; }
+    if (!hasImagery || map.getZoom() < 14) { line.textContent = ""; lastImagery = null; return; }
     imageryTimer = setTimeout(async () => {
       const request = ++imageryRequest;
       const c = map.getCenter();
@@ -193,6 +192,14 @@
     plan.push({ precise: false, params: { postalcode: f.pincode, country: "India" } });
     plan.push({ precise: false, params: { q: f.pincode + ", India" } });
     return plan;
+  }
+
+  // On phones the map sits below step 1: bring it into view after a search or location jump
+  function revealMap() {
+    const rect = $("map").getBoundingClientRect();
+    if (rect.top < 0 || rect.bottom > window.innerHeight) {
+      $("map").scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    }
   }
 
   // Nominatim's boxes for pincodes are often 10 km wide, so centre on the point instead:
@@ -270,6 +277,7 @@
       }
       flyToResult(found.results[0], found.precise);
       renderMatches(found.results, found.precise);
+      revealMap();
       track("search", { precise: found.precise });
       const hadStreet = Boolean(fields.house || fields.street);
       showAlert("search-alert", "success", found.precise ? "Street found. " : "Area found. ",
@@ -319,6 +327,7 @@
         L.circleMarker(here, { radius: 7, color: "#ffffff", weight: 2, fillColor: "#2563eb", fillOpacity: 1, interactive: false }),
       ]).addTo(map);
       map.setView(here, 19);
+      revealMap();
       track("location_used", { accurate: accuracy <= 30 });
       const metres = Math.round(accuracy);
       if (accuracy <= 30) {

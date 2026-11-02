@@ -1,11 +1,15 @@
+import base64
 import json
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
+from urllib.parse import urlsplit
 
 import httpx
-from fastapi import FastAPI, HTTPException, Query, Response
+from fastapi import FastAPI, HTTPException, Query, Request, Response
+from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
@@ -23,6 +27,37 @@ def _load_dotenv(path: Path = Path(__file__).parent.parent / ".env") -> None:
 
 _load_dotenv()
 app = FastAPI(title="Rooftop Solar Planner")
+
+# Browsers may load scripts and styles only from these places. The one inline script sets the theme
+# before first paint; its hash is checked in tests/test_security.py.
+THEME_SCRIPT_HASH = "'sha256-opRjTqQ1E5eUpc4SE9v3YoU5wuVpgtqT7zsobCj245Q='"
+CSP = "; ".join([
+    "default-src 'self'",
+    f"script-src 'self' {THEME_SCRIPT_HASH} https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://www.googletagmanager.com",
+    "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",   # Leaflet positions tiles with inline styles
+    "img-src 'self' data: blob: https://cdnjs.cloudflare.com https://tile.openstreetmap.org"
+    " https://*.google-analytics.com https://*.googletagmanager.com",
+    "connect-src 'self' https://nominatim.openstreetmap.org https://*.google-analytics.com"
+    " https://*.analytics.google.com https://*.googletagmanager.com",
+    "font-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'self'",
+])
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    https = request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
+    response.headers["Content-Security-Policy"] = CSP + ("; upgrade-insecure-requests" if https else "")
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(self), camera=(), microphone=(), payment=()"
+    if https:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
 
 
 class EstimateRequest(BaseModel):
@@ -72,7 +107,7 @@ class TrackEvent(BaseModel):
 
 @app.post("/api/track", status_code=204)
 def track(evt: TrackEvent):
-    # One JSON line per event in the server log (Hugging Face Spaces keeps these), no third-party analytics
+    # One JSON line per event in the server log
     print("event " + json.dumps({"ts": datetime.now(timezone.utc).isoformat(timespec="seconds"), **evt.model_dump()}), flush=True)
     return Response(status_code=204)
 
@@ -84,8 +119,83 @@ def health():
 
 @app.get("/api/config")
 def config():
-    # ArcGIS basemap keys are meant to be used in browsers; restrict yours to this site's referrer
-    return {"arcgis_api_key": imagery_key()}
+    # The ArcGIS key never leaves the server: map tiles come through /api/tiles instead
+    ga_id = os.environ.get("GA_MEASUREMENT_ID", "")
+    return {"imagery": imagery_key() is not None,
+            "ga_measurement_id": ga_id if re.fullmatch(r"G-[A-Z0-9]{4,12}", ga_id) else None}
+
+
+TILE_SERVICES = {
+    "imagery": "https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile",
+    "labels": "https://ibasemaps-api.arcgis.com/arcgis/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile",
+}
+BLANK_PNG = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNgYGBgAAAABQABeqhXUAAAAABJRU5ErkJggg==")
+_tile_client: httpx.AsyncClient | None = None
+
+
+def tile_client() -> httpx.AsyncClient:
+    global _tile_client
+    if _tile_client is None or _tile_client.is_closed:
+        _tile_client = httpx.AsyncClient(timeout=15, limits=httpx.Limits(max_connections=32))
+    return _tile_client
+
+
+@app.get("/api/tiles/{layer}/{z}/{y}/{x}")
+async def tile(layer: Literal["imagery", "labels"], z: int, y: int, x: int, request: Request):
+    """Map tiles fetched with the server's key, so the key is never sent to browsers."""
+    if not 0 <= z <= 19 or not (0 <= x < 2 ** z and 0 <= y < 2 ** z):
+        raise HTTPException(404, "No such tile")
+    # Only this site's pages may use the proxy (stops other sites from spending the key's quota)
+    referer = request.headers.get("referer")
+    if referer and urlsplit(referer).netloc != request.headers.get("host"):
+        raise HTTPException(403, "Tiles are only served to this site")
+    key = imagery_key()
+    if not key:
+        raise HTTPException(503, "Satellite imagery is not configured")
+    try:
+        upstream = await tile_client().get(f"{TILE_SERVICES[layer]}/{z}/{y}/{x}", params={"token": key})
+    except httpx.HTTPError as exc:
+        raise HTTPException(502, "Imagery service did not respond") from exc
+    if upstream.status_code == 404:
+        if layer == "labels":   # places with no names to draw: a blank tile keeps the browser console clean
+            return Response(BLANK_PNG, media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})
+        raise HTTPException(404, "No imagery at this zoom")   # the map then falls back to a lower zoom
+    if upstream.status_code != 200:
+        raise HTTPException(502, "Imagery service error")
+    return Response(upstream.content, media_type=upstream.headers.get("content-type", "image/jpeg"),
+                    headers={"Cache-Control": "public, max-age=86400"})
+
+
+def site_url(request: Request) -> str:
+    """Public address of the site, from SITE_URL or the request (hosting proxies send X-Forwarded-Proto)."""
+    if os.environ.get("SITE_URL"):
+        return os.environ["SITE_URL"].rstrip("/")
+    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
+    return f"{scheme}://{request.headers.get('host', request.url.netloc)}"
+
+
+@app.get("/robots.txt", response_class=PlainTextResponse)
+def robots(request: Request):
+    return f"User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: {site_url(request)}/sitemap.xml\n"
+
+
+@app.get("/sitemap.xml")
+def sitemap(request: Request):
+    base = site_url(request)
+    urls = "".join(f"  <url><loc>{base}{path}</loc></url>\n" for path in ("/", "/planner/"))
+    xml = ('<?xml version="1.0" encoding="UTF-8"?>\n'
+           f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{urls}</urlset>\n')
+    return Response(xml, media_type="application/xml")
+
+
+@app.get("/google{token}.html", include_in_schema=False)
+def search_console_file(token: str):
+    """Google Search Console's HTML file check: set GOOGLE_SITE_VERIFICATION to the file name it gives you."""
+    name = "google" + token
+    expected = os.environ.get("GOOGLE_SITE_VERIFICATION", "").removesuffix(".html")
+    if expected and name == expected and re.fullmatch(r"google[0-9a-f]{8,32}", name):
+        return PlainTextResponse(f"google-site-verification: {name}.html")
+    raise HTTPException(404)
 
 
 @app.get("/api/imagery-date")
